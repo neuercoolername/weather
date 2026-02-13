@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Location {
+  id        Int               @id @default(autoincrement())
+  lat       Float
+  lon       Float
+  createdAt DateTime          @default(now())
+  snapshots WeatherSnapshot[]
+}
+
+model WeatherSnapshot {
+  id            Int      @id @default(autoincrement())
+  locationId    Int
+  location      Location @relation(fields: [locationId], references: [id])
+  temperature   Float
+  precipitation Float
+  windspeed     Float
+  weathercode   Int
+  isDay         Boolean
+  rawJson       Json
+  fetchedAt     DateTime @default(now())
+}
