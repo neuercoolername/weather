@@ -1,15 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import { getWeatherDescription } from "@/lib/wmo-codes";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const snapshot = await prisma.weatherSnapshot.findFirst({
     orderBy: { fetchedAt: "desc" },
-    include: { location: true },
+    include: { haiku: true },
   });
 
-  if (!snapshot) {
+  if (!snapshot?.haiku) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-lg text-zinc-500">
@@ -19,20 +18,12 @@ export default async function Home() {
     );
   }
 
-  const description = getWeatherDescription(snapshot.weathercode, snapshot.isDay);
-
   return (
     <div className="flex min-h-screen items-center justify-center">
       <main className="flex flex-col items-center gap-8 p-8">
-        <h1 className="text-5xl font-light tracking-tight">
-          {description}
-        </h1>
-        <div className="flex flex-col items-center gap-2 text-xl text-zinc-500">
-          <p>{snapshot.temperature}&deg;C</p>
-          <p>{snapshot.precipitation} mm precipitation</p>
-          <p>{snapshot.windspeed} km/h wind</p>
-          <p>{snapshot.isDay ? "Day" : "Night"}</p>
-        </div>
+        <p className="whitespace-pre-line text-2xl font-light italic leading-relaxed tracking-wide">
+          {snapshot.haiku.text}
+        </p>
       </main>
     </div>
   );
