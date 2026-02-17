@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const snapshot = await prisma.weatherSnapshot.findFirst({
     orderBy: { fetchedAt: "desc" },
-    include: { location: true },
+    include: { location: true, haiku: true },
   });
 
   if (!snapshot) {
@@ -33,6 +33,11 @@ export default async function Home() {
           <p>{snapshot.windspeed} km/h wind</p>
           <p>{snapshot.isDay ? "Day" : "Night"}</p>
         </div>
+        {snapshot.haiku && (
+          <p className="whitespace-pre-line text-lg italic text-zinc-400">
+            {snapshot.haiku.text}
+          </p>
+        )}
       </main>
     </div>
   );
