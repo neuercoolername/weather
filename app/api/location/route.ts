@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { fetchAndStoreWeather } from "@/lib/weather";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +31,12 @@ export async function POST(request: NextRequest) {
     const location = await prisma.location.create({
       data: { lat, lon },
     });
+
+    try {
+      await fetchAndStoreWeather(location.id, lat, lon);
+    } catch (weatherError) {
+      console.error("[Location API] Failed to fetch initial weather:", weatherError);
+    }
 
     return NextResponse.json({
       status: "ok",
