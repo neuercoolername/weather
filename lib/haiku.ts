@@ -3,16 +3,17 @@ import Anthropic from "@anthropic-ai/sdk";
 const anthropic = new Anthropic();
 
 const SYSTEM_PROMPT = `You are given a JSON weather snapshot.
-Your task is to write a single haiku (5-7-5 syllables).
+Write a single haiku (5-7-5 syllables).
 
 Rules:
-- You MUST incorporate at least one raw field name or value from the JSON unchanged (e.g. "is_day: 0", "-0.1", "8.9")
-- No metaphors, no emotions, no pathetic fallacy
-- Do not explain or comment, output only the haiku
+- Incorporate at least one raw field name or value from the JSON unchanged
+- The three lines must not simply be three separate readings
+- Do not name or refer to specific places or landmarks
 - Plain lowercase, no punctuation except what feels necessary
-- The haiku should feel found, not written`;
+- Output only the haiku`;
 
 export async function generateHaiku(rawJson: object): Promise<string> {
+  
   const message = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 64,
