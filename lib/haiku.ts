@@ -6,7 +6,7 @@ const SYSTEM_PROMPT = `You are given a JSON weather snapshot.
 Write a single haiku (5-7-5 syllables).
 
 Rules:
-- Incorporate at least one raw field name or value from the JSON unchanged
+- Incorporate at least one or two raw field name or value from the JSON unchanged
 - The three lines must not simply be three separate readings
 - Do not name or refer to specific places or landmarks
 - Plain lowercase, no punctuation except what feels necessary
