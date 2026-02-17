@@ -28,4 +28,13 @@ model WeatherSnapshot {
   isDay         Boolean
   rawJson       Json
   fetchedAt     DateTime @default(now())
+  haiku         Haiku?
+}
+
+model Haiku {
+  id         Int             @id @default(autoincrement())
+  snapshotId Int             @unique
+  snapshot   WeatherSnapshot @relation(fields: [snapshotId], references: [id])
+  text       String
+  createdAt  DateTime        @default(now())
 }

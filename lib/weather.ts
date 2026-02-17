@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { generateHaiku } from "@/lib/haiku";
 
 interface OpenMeteoResponse {
   current: {
@@ -44,4 +45,14 @@ export async function fetchAndStoreWeather(
   console.log(
     `[WeatherCron] ${new Date().toISOString()} — Success. WeatherSnapshot #${snapshot.id} saved.`
   );
+
+  try {
+    const haikuText = await generateHaiku(data);
+    await prisma.haiku.create({
+      data: { snapshotId: snapshot.id, text: haikuText },
+    });
+    console.log(`[WeatherCron] Haiku generated for snapshot #${snapshot.id}`);
+  } catch (haikuError) {
+    console.error(`[WeatherCron] Failed to generate haiku for snapshot #${snapshot.id}:`, haikuError);
+  }
 }
