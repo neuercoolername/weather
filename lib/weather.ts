@@ -6,8 +6,13 @@ interface OpenMeteoResponse {
     temperature_2m: number;
     precipitation: number;
     wind_speed_10m: number;
+    wind_direction_10m: number;
+    wind_gusts_10m: number;
     weather_code: number;
     is_day: number;
+    relative_humidity_2m: number;
+    apparent_temperature: number;
+    cloud_cover: number;
   };
 }
 
@@ -16,12 +21,27 @@ export async function fetchAndStoreWeather(
   lat: number,
   lon: number
 ): Promise<void> {
-  const url =
-    `https://api.open-meteo.com/v1/forecast` +
-    `?latitude=${lat}&longitude=${lon}` +
-    `&current=temperature_2m,precipitation,wind_speed_10m,weather_code,is_day`;
+  const url = new URL("https://api.open-meteo.com/v1/forecast");
+  url.searchParams.set("latitude", String(lat));
+  url.searchParams.set("longitude", String(lon));
+  url.searchParams.set(
+    "current",
+    [
+      "temperature_2m",
+      "apparent_temperature",
+      "relative_humidity_2m",
+      "precipitation",
+      "weather_code",
+      "cloud_cover",
+      "wind_speed_10m",
+      "wind_direction_10m",
+      "wind_gusts_10m",
+      "is_day",
+    ].join(",")
+  );
+  url.searchParams.set("timezone", "auto");
 
-  const response = await fetch(url);
+  const response = await fetch(url.toString());
 
   if (!response.ok) {
     throw new Error(`Open-Meteo API returned ${response.status}: ${response.statusText}`);
