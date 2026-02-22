@@ -11,7 +11,7 @@ export default async function Home() {
   if (!snapshot?.haiku) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-lg text-zinc-500">
+        <p className="text-lg">
           Waiting for first weather update...
         </p>
       </div>
