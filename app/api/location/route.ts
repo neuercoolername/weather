@@ -32,11 +32,9 @@ export async function POST(request: NextRequest) {
       data: { lat, lon },
     });
 
-    try {
-      await fetchAndStoreWeather(location.id, lat, lon);
-    } catch (weatherError) {
-      console.error("[Location API] Failed to fetch initial weather:", weatherError);
-    }
+    fetchAndStoreWeather(location.id, lat, lon).catch((err) =>
+      console.error("[Location API] Failed to fetch initial weather:", err)
+    );
 
     return NextResponse.json({
       status: "ok",
