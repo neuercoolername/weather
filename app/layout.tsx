@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Weather",
+  title: "weather",
   description: "Current weather conditions",
 };
 

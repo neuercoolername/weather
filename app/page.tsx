@@ -12,7 +12,7 @@ export default async function Home() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-lg">
-          Waiting for first weather update...
+          Waiting for weather...
         </p>
       </div>
     );

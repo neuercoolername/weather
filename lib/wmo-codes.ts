@@ -34,3 +34,17 @@ export function getWeatherDescription(code: number, isDay: boolean): string {
   if (!entry) return "Unknown";
   return isDay ? entry.day : entry.night;
 }
+
+export function getWeatherEmoji(code: number, isDay: boolean): string {
+  if (code === 0)  return isDay ? "☀️" : "🌙";
+  if (code <= 2)   return isDay ? "🌤️" : "🌙";
+  if (code === 3)  return "☁️";
+  if (code <= 48)  return "🌫️";
+  if (code <= 57)  return isDay ? "🌦️" : "🌧️";
+  if (code <= 67)  return "🌧️";
+  if (code <= 77)  return "🌨️";
+  if (code <= 82)  return isDay ? "🌦️" : "🌧️";
+  if (code <= 86)  return "🌨️";
+  if (code <= 99)  return "⛈️";
+  return "🌡️";
+}
