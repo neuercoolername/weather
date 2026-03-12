@@ -18,17 +18,18 @@ model Location {
 }
 
 model WeatherSnapshot {
-  id            Int      @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   locationId    Int
-  location      Location @relation(fields: [locationId], references: [id])
+  location      Location     @relation(fields: [locationId], references: [id])
   temperature   Float
   precipitation Float
   windspeed     Float
   weathercode   Int
   isDay         Boolean
   rawJson       Json
-  fetchedAt     DateTime @default(now())
+  fetchedAt     DateTime     @default(now())
   haiku         Haiku?
+  tracePoint    TracePoint?
 }
 
 model Haiku {
@@ -37,4 +38,27 @@ model Haiku {
   snapshot   WeatherSnapshot @relation(fields: [snapshotId], references: [id])
   text       String
   createdAt  DateTime        @default(now())
+}
+
+model TracePoint {
+  id             Int              @id @default(autoincrement())
+  snapshotId     Int              @unique
+  snapshot       WeatherSnapshot  @relation(fields: [snapshotId], references: [id])
+  x              Float
+  y              Float
+  createdAt      DateTime         @default(now())
+  intersectionsA Intersection[]   @relation("IntersectionA")
+  intersectionsB Intersection[]   @relation("IntersectionB")
+}
+
+model Intersection {
+  id            Int        @id @default(autoincrement())
+  tracePointIdA Int
+  tracePointIdB Int
+  tracePointA   TracePoint @relation("IntersectionA", fields: [tracePointIdA], references: [id])
+  tracePointB   TracePoint @relation("IntersectionB", fields: [tracePointIdB], references: [id])
+  x             Float
+  y             Float
+  text          String?
+  detectedAt    DateTime   @default(now())
 }
