@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "backfill": "tsx scripts/backfill-trace.ts"
+    "backfill": "tsx scripts/backfill-trace.ts",
+    "reset-trace": "tsx scripts/reset-trace.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",

@@ -13,8 +13,8 @@ export function computeTracePoint(
 ): Point {
   const rad = (windDirection * Math.PI) / 180;
   return {
-    x: prevX + windSpeed * Math.sin(rad),
-    y: prevY - windSpeed * Math.cos(rad),
+    x: prevX - windSpeed * Math.sin(rad),
+    y: prevY + windSpeed * Math.cos(rad),
   };
 }
 
