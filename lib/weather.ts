@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateHaiku } from "@/lib/haiku";
 import { computeTracePoint, detectAndStoreIntersections } from "@/lib/trace";
@@ -55,7 +56,7 @@ async function storeSnapshot(locationId: number, data: OpenMeteoResponse) {
       windspeed: current.wind_speed_10m,
       weathercode: current.weather_code,
       isDay: current.is_day === 1,
-      rawJson: data,
+      rawJson: data as unknown as Prisma.InputJsonValue,
     },
   });
   console.log(`[WeatherCron] ${new Date().toISOString()} — Success. WeatherSnapshot #${snapshot.id} saved.`);
