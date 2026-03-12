@@ -1,36 +1,19 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# weather
 
-## Getting Started
+A personal weather display. An iOS app posts my GPS coordinates to this server; it fetches current conditions from Open-Meteo, asks Claude to write a haiku about them, and shows it on a minimal webpage. The favicon updates to match the weather.
 
-First, run the development server:
+## how it works
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **[iOS app](https://github.com/neuercoolername/ios-gps-tracker) → `POST /api/location`** — sends `{ lat, lon }`. Location saved, weather fetch kicks off in the background.
+2. **Open-Meteo** — free weather API, no key needed. Returns temperature, precipitation, wind, cloud cover, WMO weather code, and day/night flag.
+3. **Claude** (`claude-haiku-4-5-20251001`) — writes a 5-7-5 haiku from the raw weather JSON, incorporating literal field values.
+4. **Hourly cron** — re-fetches weather for the most recent location every hour at :00, keeping the haiku current through the day.
+5. **Page** — shows the latest haiku. The favicon is a weather emoji (☀️ 🌤️ ☁️ 🌫️ 🌧️ 🌨️ ⛈️) picked from the WMO code and time of day.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js (App Router) — page + API route + cron via instrumentation hook
+- PostgreSQL + Prisma — locations, weather snapshots, haikus
+- Open-Meteo — weather data
+- Anthropic Claude — haiku generation
+- Docker — deployment
