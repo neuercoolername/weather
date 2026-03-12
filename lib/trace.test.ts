@@ -2,27 +2,27 @@ import { describe, it, expect } from "vitest";
 import { computeTracePoint, segmentsIntersect } from "./trace";
 
 describe("computeTracePoint", () => {
-  it("north wind (0°) moves point north (y decreases)", () => {
+  it("north wind (0°) blows particle south (y increases)", () => {
     const result = computeTracePoint(0, 0, 0, 10);
-    expect(result.x).toBeCloseTo(0);
-    expect(result.y).toBeCloseTo(-10);
-  });
-
-  it("south wind (180°) moves point south (y increases)", () => {
-    const result = computeTracePoint(0, 0, 180, 10);
     expect(result.x).toBeCloseTo(0);
     expect(result.y).toBeCloseTo(10);
   });
 
-  it("east wind (90°) moves point east (x increases)", () => {
+  it("south wind (180°) blows particle north (y decreases)", () => {
+    const result = computeTracePoint(0, 0, 180, 10);
+    expect(result.x).toBeCloseTo(0);
+    expect(result.y).toBeCloseTo(-10);
+  });
+
+  it("east wind (90°) blows particle west (x decreases)", () => {
     const result = computeTracePoint(0, 0, 90, 10);
-    expect(result.x).toBeCloseTo(10);
+    expect(result.x).toBeCloseTo(-10);
     expect(result.y).toBeCloseTo(0);
   });
 
-  it("west wind (270°) moves point west (x decreases)", () => {
+  it("west wind (270°) blows particle east (x increases)", () => {
     const result = computeTracePoint(0, 0, 270, 10);
-    expect(result.x).toBeCloseTo(-10);
+    expect(result.x).toBeCloseTo(10);
     expect(result.y).toBeCloseTo(0);
   });
 
@@ -35,7 +35,7 @@ describe("computeTracePoint", () => {
   it("accumulates from a non-origin previous point", () => {
     const result = computeTracePoint(3, 4, 0, 5);
     expect(result.x).toBeCloseTo(3);
-    expect(result.y).toBeCloseTo(-1);
+    expect(result.y).toBeCloseTo(9);
   });
 });
 
