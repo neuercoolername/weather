@@ -15,7 +15,16 @@ export default async function TracePage() {
       },
     }),
     prisma.intersection.findMany({
-      select: { id: true, x: true, y: true, text: true, tracePointIdA: true, tracePointIdB: true },
+      select: {
+        id: true,
+        x: true,
+        y: true,
+        text: true,
+        tracePointIdA: true,
+        tracePointIdB: true,
+        tracePointA: { select: { snapshot: { select: { fetchedAt: true } } } },
+        tracePointB: { select: { snapshot: { select: { fetchedAt: true } } } },
+      },
     }),
   ]);
 
