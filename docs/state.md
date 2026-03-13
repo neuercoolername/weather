@@ -58,13 +58,20 @@ Detects intersections after each new segment.
 Public page at `/trace` renders full SVG path with interactive intersection dots.
 Authenticated POST to `/api/intersections/[id]` to add writing.
 
+### Wind trace UI rebuild ✅
+d3-zoom two-layer SVG: polyline scales with camera, dots stay fixed pixel size.
+HTML overlay label anchored to active dot; tracks during zoom/pan.
+Components: `TraceSVG` (orchestrator), `IntersectionDot`, `IntersectionLabel`.
+
 ---
 
 ## Key files
 - `lib/weather.ts` — fetch, store snapshot, store trace point, fire intersection detection
 - `lib/trace.ts` — pure geometry: `computeTracePoint`, `segmentsIntersect`, `detectAndStoreIntersections`
 - `app/trace/page.tsx` — server component, fetches all trace points + intersections
-- `app/trace/TraceSVG.tsx` — client component, SVG render + click to reveal writing
+- `app/trace/TraceSVG.tsx` — client component, d3-zoom orchestrator
+- `app/trace/IntersectionDot.tsx` — SVG dot + hit area, fixed screen-pixel size
+- `app/trace/IntersectionLabel.tsx` — HTML overlay label, anchored to dot
 - `app/api/location/route.ts` — POST endpoint receiving GPS coordinates from iOS app
 - `app/api/intersections/[id]/route.ts` — GET removed, POST authenticated
 - `scripts/backfill-trace.ts` — one-time backfill for pre-existing snapshots
