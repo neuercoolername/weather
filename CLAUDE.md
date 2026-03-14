@@ -27,8 +27,10 @@ Next.js, PostgreSQL, Prisma, Vitest, Open-Meteo API
 ### Finishing a feature
 - All checklist items marked complete
 - All tests passing
+- Run `npm run build` to test if project builds without errors
 - Update `docs/state.md` to reflect schema changes, new features, new endpoints
 - Mark the feature as complete in `docs/state.md`
+- Update `/README.md` if major changes have been made
 
 ### General
 - Keep changes small and incremental
