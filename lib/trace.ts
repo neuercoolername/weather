@@ -5,6 +5,9 @@ interface Point {
   y: number;
 }
 
+// Cartesian convention: +y = north. SVG renderer applies one y-flip at render boundary.
+// North wind (0°) pushes pointer south → y decreases. South wind (180°) → y increases.
+// East wind (90°) pushes west → x decreases. West wind (270°) → x increases.
 export function computeTracePoint(
   prevX: number,
   prevY: number,
@@ -14,7 +17,7 @@ export function computeTracePoint(
   const rad = (windDirection * Math.PI) / 180;
   return {
     x: prevX - windSpeed * Math.sin(rad),
-    y: prevY + windSpeed * Math.cos(rad),
+    y: prevY - windSpeed * Math.cos(rad),
   };
 }
 

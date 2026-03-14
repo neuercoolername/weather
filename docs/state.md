@@ -37,6 +37,7 @@ LLM-generated haiku per snapshot. 1-to-1 with `WeatherSnapshot`.
 Precomputed (x, y) position for each observation. 1-to-1 with `WeatherSnapshot`.
 - Wind direction + speed → displacement from previous point
 - Origin is `(0, 0)`. Units are km/h, not geographic.
+- **Convention** Cartesian — +y = north, +x = east. SVG renderer flips y at render boundary.
 - Only exists for snapshots from Feb 17 onward (first with wind data)
 
 ### `Intersection`
@@ -76,8 +77,8 @@ Components: `TraceSVG` (orchestrator), `IntersectionDot`, `IntersectionLabel`.
 - `app/api/intersections/[id]/route.ts` — GET removed, POST authenticated
 - `scripts/backfill-trace.ts` — one-time backfill for pre-existing snapshots
 - `scripts/reset-trace.ts` — deletes all trace points and intersections from DB
+- `docs/backlog.md` — project backlog
 
 ---
 
-## Open / next
-- [ ] Next feature: TBD
+See `docs/backlog.md` for full backlog.
