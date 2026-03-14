@@ -55,7 +55,7 @@ export default function TraceSVG({ tracePoints, intersections }: Props) {
     if (width === 0 || height === 0) return;
     const PADDING = 60;
     const xs = tracePoints.map((p) => p.x);
-    const ys = tracePoints.map((p) => p.y);
+    const ys = tracePoints.map((p) => -p.y);
     const minX = Math.min(...xs);
     const maxX = Math.max(...xs);
     const minY = Math.min(...ys);
@@ -74,7 +74,8 @@ export default function TraceSVG({ tracePoints, intersections }: Props) {
     );
   }, []); // tracePoints are stable (server-rendered)
 
-  const points = tracePoints.map((p) => `${p.x},${p.y}`).join(" ");
+  // Stored coords are Cartesian (y-up). Negate y here to convert to SVG screen convention (y-down).
+  const points = tracePoints.map((p) => `${p.x},${-p.y}`).join(" ");
   const activeIntersection = intersections.find((ix) => ix.id === activeId) ?? null;
 
   return (
@@ -101,7 +102,7 @@ export default function TraceSVG({ tracePoints, intersections }: Props) {
         <g>
           {intersections.map((ix) => {
             const sx = ix.x * transform.k + transform.x;
-            const sy = ix.y * transform.k + transform.y;
+            const sy = (-ix.y) * transform.k + transform.y;
             return (
               <IntersectionDot
                 key={ix.id}
@@ -124,7 +125,7 @@ export default function TraceSVG({ tracePoints, intersections }: Props) {
       {/* HTML overlay label */}
       {activeIntersection && (() => {
         const sx = activeIntersection.x * transform.k + transform.x;
-        const sy = activeIntersection.y * transform.k + transform.y;
+        const sy = (-activeIntersection.y) * transform.k + transform.y;
         return (
           <IntersectionLabel
             sx={sx}
