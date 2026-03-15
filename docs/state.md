@@ -64,11 +64,18 @@ d3-zoom two-layer SVG: polyline scales with camera, dots stay fixed pixel size.
 HTML overlay label anchored to active dot; tracks during zoom/pan.
 Components: `TraceSVG` (orchestrator), `IntersectionDot`, `IntersectionLabel`.
 
+### Intersection email notification ✅
+Sends a plain-text email via Resend when a new intersection is detected.
+Fire-and-forget — a failed send never breaks the weather-fetch cycle.
+Reply-to address is pre-set to `trace+<id>@<domain>` for future inbound handling.
+Requires env vars: `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM`.
+
 ---
 
 ## Key files
-- `lib/weather.ts` — fetch, store snapshot, store trace point, fire intersection detection
+- `lib/weather.ts` — fetch, store snapshot, store trace point, fire intersection detection + email notification
 - `lib/trace.ts` — pure geometry: `computeTracePoint`, `segmentsIntersect`, `detectAndStoreIntersections`
+- `lib/email.ts` — Resend client, `formatDate`, `sendIntersectionEmail`
 - `app/trace/page.tsx` — server component, fetches all trace points + intersections
 - `app/trace/TraceSVG.tsx` — client component, d3-zoom orchestrator
 - `app/trace/IntersectionDot.tsx` — SVG dot + hit area, fixed screen-pixel size
