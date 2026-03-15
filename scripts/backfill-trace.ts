@@ -33,7 +33,7 @@ async function main() {
       data: { snapshotId: snapshot.id, x, y },
     });
 
-    await detectAndStoreIntersections(tracePoint.id, prevX, prevY, x, y);
+    await detectAndStoreIntersections(tracePoint.id, snapshot.id, prevX, prevY, x, y);
 
     console.log(`[Backfill] Snapshot #${snapshot.id} → TracePoint #${tracePoint.id} (${x.toFixed(2)}, ${y.toFixed(2)})`);
     created++;

@@ -54,15 +54,27 @@ export function segmentsIntersect(
 
 export async function detectAndStoreIntersections(
   newTracePointId: number,
+  newSnapshotId: number,
   prevX: number,
   prevY: number,
   newX: number,
   newY: number
-): Promise<void> {
-  const allPoints = await prisma.tracePoint.findMany({
-    orderBy: { createdAt: "asc" },
-    select: { id: true, x: true, y: true },
-  });
+): Promise<{ id: number; dateA: Date; dateB: Date }[]> {
+  const [allPoints, newSnapshot] = await Promise.all([
+    prisma.tracePoint.findMany({
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        x: true,
+        y: true,
+        snapshot: { select: { fetchedAt: true } },
+      },
+    }),
+    prisma.weatherSnapshot.findUniqueOrThrow({
+      where: { id: newSnapshotId },
+      select: { fetchedAt: true },
+    }),
+  ]);
 
   const newSegStart = { x: prevX, y: prevY };
   const newSegEnd = { x: newX, y: newY };
@@ -70,7 +82,7 @@ export async function detectAndStoreIntersections(
   // Build all previous segments (consecutive pairs), skip the last one
   // (it shares an endpoint with the new segment).
   const segmentCount = allPoints.length - 1;
-  const intersections: { tracePointIdA: number; tracePointIdB: number; x: number; y: number }[] = [];
+  const created: { id: number; dateA: Date; dateB: Date }[] = [];
 
   for (let i = 0; i < segmentCount - 1; i++) {
     const a = allPoints[i];
@@ -84,19 +96,27 @@ export async function detectAndStoreIntersections(
     );
 
     if (hit) {
-      intersections.push({
-        tracePointIdA: b.id,
-        tracePointIdB: newTracePointId,
-        x: hit.x,
-        y: hit.y,
+      const intersection = await prisma.intersection.create({
+        data: {
+          tracePointIdA: b.id,
+          tracePointIdB: newTracePointId,
+          x: hit.x,
+          y: hit.y,
+        },
+      });
+      created.push({
+        id: intersection.id,
+        dateA: b.snapshot.fetchedAt,
+        dateB: newSnapshot.fetchedAt,
       });
     }
   }
 
-  if (intersections.length > 0) {
-    await prisma.intersection.createMany({ data: intersections });
+  if (created.length > 0) {
     console.log(
-      `[Trace] ${intersections.length} intersection(s) detected for TracePoint #${newTracePointId}`
+      `[Trace] ${created.length} intersection(s) detected for TracePoint #${newTracePointId}`
     );
   }
+
+  return created;
 }
