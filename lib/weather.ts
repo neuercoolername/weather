@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateHaiku } from "@/lib/haiku";
 import { computeTracePoint, detectAndStoreIntersections } from "@/lib/trace";
+import { sendIntersectionEmail } from "@/lib/email";
 
 interface OpenMeteoResponse {
   current: {
@@ -69,15 +70,27 @@ async function storeHaiku(snapshotId: number, data: OpenMeteoResponse) {
   console.log(`[WeatherCron] Haiku generated for snapshot #${snapshotId}`);
 }
 
-async function storeTracePoint(snapshotId: number, windDirection: number, windSpeed: number) {
+async function storeTracePoint(
+  snapshotId: number,
+  windDirection: number,
+  windSpeed: number
+): Promise<{ id: number; dateA: Date; dateB: Date }[]> {
   const prev = await prisma.tracePoint.findFirst({ orderBy: { createdAt: "desc" } });
   const prevX = prev?.x ?? 0;
   const prevY = prev?.y ?? 0;
   const { x, y } = computeTracePoint(prevX, prevY, windDirection, windSpeed);
   const tracePoint = await prisma.tracePoint.create({ data: { snapshotId, x, y } });
-  detectAndStoreIntersections(tracePoint.id, prevX, prevY, x, y).catch((err) =>
-    console.error(`[Trace] Intersection detection failed for TracePoint #${tracePoint.id}:`, err)
-  );
+  return detectAndStoreIntersections(tracePoint.id, snapshotId, prevX, prevY, x, y);
+}
+
+async function notifyIntersections(
+  intersections: { id: number; dateA: Date; dateB: Date }[]
+): Promise<void> {
+  for (const ix of intersections) {
+    sendIntersectionEmail(ix).catch((err) =>
+      console.error(`[Email] Failed to send intersection email for Intersection #${ix.id}:`, err)
+    );
+  }
 }
 
 export async function fetchAndStoreWeather(
@@ -91,7 +104,9 @@ export async function fetchAndStoreWeather(
   storeHaiku(snapshot.id, data).catch((err) =>
     console.error(`[WeatherCron] Failed to generate haiku for snapshot #${snapshot.id}:`, err)
   );
-  storeTracePoint(snapshot.id, data.current.wind_direction_10m, data.current.wind_speed_10m).catch((err) =>
-    console.error(`[Trace] Failed to store trace point for snapshot #${snapshot.id}:`, err)
-  );
+  storeTracePoint(snapshot.id, data.current.wind_direction_10m, data.current.wind_speed_10m)
+    .then(notifyIntersections)
+    .catch((err) =>
+      console.error(`[Trace] Failed to store trace point for snapshot #${snapshot.id}:`, err)
+    );
 }
