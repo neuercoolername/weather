@@ -31,6 +31,7 @@ Next.js, PostgreSQL, Prisma, Vitest, Open-Meteo API
 - Update `docs/state.md` to reflect schema changes, new features, new endpoints
 - Mark the feature as complete in `docs/state.md`
 - Update `/README.md` if major changes have been made
+- Update `docs/backlog.md` if applicable
 
 ### General
 - Keep changes small and incremental
