@@ -52,13 +52,23 @@ model TracePoint {
 }
 
 model Intersection {
-  id            Int        @id @default(autoincrement())
-  tracePointIdA Int
-  tracePointIdB Int
-  tracePointA   TracePoint @relation("IntersectionA", fields: [tracePointIdA], references: [id])
-  tracePointB   TracePoint @relation("IntersectionB", fields: [tracePointIdB], references: [id])
-  x             Float
-  y             Float
-  text          String?
-  detectedAt    DateTime   @default(now())
+  id               Int               @id @default(autoincrement())
+  tracePointIdA    Int
+  tracePointIdB    Int
+  tracePointA      TracePoint        @relation("IntersectionA", fields: [tracePointIdA], references: [id])
+  tracePointB      TracePoint        @relation("IntersectionB", fields: [tracePointIdB], references: [id])
+  x                Float
+  y                Float
+  text             String?
+  detectedAt       DateTime          @default(now())
+  intersectionText IntersectionText?
+}
+
+model IntersectionText {
+  id             Int          @id @default(autoincrement())
+  intersectionId Int          @unique
+  intersection   Intersection @relation(fields: [intersectionId], references: [id])
+  text           String
+  promptPayload  Json?
+  createdAt      DateTime     @default(now())
 }
