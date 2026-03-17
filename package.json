@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "backfill": "tsx scripts/backfill-trace.ts",
+    "backfill:trace": "tsx scripts/backfill-trace.ts",
+    "backfill:texts": "tsx scripts/backfill-texts.ts",
+    "backfill:texts:email": "tsx scripts/backfill-texts.ts --email",
     "reset-trace": "tsx scripts/reset-trace.ts"
   },
   "dependencies": {

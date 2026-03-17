@@ -17,7 +17,11 @@ vi.mock("@/lib/haiku", () => ({
 
 vi.mock("@/lib/trace", () => ({
   computeTracePoint: vi.fn().mockReturnValue({ x: 5, y: -3 }),
-  detectAndStoreIntersections: vi.fn().mockResolvedValue(undefined),
+  detectAndStoreIntersections: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/lib/intersection-text", () => ({
+  generateIntersectionText: vi.fn().mockResolvedValue("mock intersection text"),
 }));
 
 const mockWeatherData = {
