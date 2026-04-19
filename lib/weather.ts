@@ -94,9 +94,12 @@ export async function processIntersections(
     } catch (err) {
       console.error(`[IntersectionText] Failed for Intersection #${ix.id}:`, err);
     }
-    sendIntersectionEmail({ ...ix, text }).catch((err) =>
-      console.error(`[Email] Failed to send intersection email for Intersection #${ix.id}:`, err)
-    );
+    console.log(`[Email] Sending email for Intersection #${ix.id}...`);
+    await sendIntersectionEmail({ ...ix, text })
+      .then(() => console.log(`[Email] Sent for Intersection #${ix.id}`))
+      .catch((err) =>
+        console.error(`[Email] Failed to send intersection email for Intersection #${ix.id}:`, err)
+      );
   }
 }
 
