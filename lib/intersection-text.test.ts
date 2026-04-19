@@ -4,7 +4,6 @@ import { formatGapDuration, buildIntersectionPayload, generateIntersectionText }
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     intersection: { findUniqueOrThrow: vi.fn() },
-    weatherSnapshot: { findMany: vi.fn() },
     intersectionText: { create: vi.fn() },
   },
 }));
@@ -57,23 +56,6 @@ function makeIntersection(pastFetchedAt: Date, currentFetchedAt: Date) {
   };
 }
 
-const MOCK_CONTEXT_SNAPS = [
-  {
-    fetchedAt: new Date("2026-01-01T06:00:00.000Z"),
-    temperature: 4.0,
-    precipitation: 0.0,
-    weathercode: 2,
-    isDay: true,
-  },
-  {
-    fetchedAt: new Date("2026-01-01T12:00:00.000Z"),
-    temperature: 5.0,
-    precipitation: 0.0,
-    weathercode: 3,
-    isDay: true,
-  },
-];
-
 describe("formatGapDuration", () => {
   it("formats short gaps as minutes", () => {
     expect(formatGapDuration(30 * 60_000)).toBe("30 minutes");
@@ -109,9 +91,6 @@ describe("formatGapDuration", () => {
 describe("buildIntersectionPayload", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (prisma.weatherSnapshot.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
-      MOCK_CONTEXT_SNAPS
-    );
   });
 
   it("classifies a short gap as 'loop'", async () => {
@@ -141,26 +120,16 @@ describe("buildIntersectionPayload", () => {
     expect(payload.gapDuration).toBe("6 hours");
   });
 
-  it("queries the context window with a 12h range around the past snapshot", async () => {
+  it("current contains only timestamp and location", async () => {
     (prisma.intersection.findUniqueOrThrow as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeIntersection(PAST_FETCHED_AT, CURRENT_FETCHED_AT)
     );
 
-    await buildIntersectionPayload(1);
-
-    expect(prisma.weatherSnapshot.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          fetchedAt: {
-            gte: new Date(PAST_FETCHED_AT.getTime() - 12 * 3_600_000),
-            lte: new Date(PAST_FETCHED_AT.getTime() + 12 * 3_600_000),
-          },
-        },
-      })
-    );
+    const payload = await buildIntersectionPayload(1);
+    expect(Object.keys(payload.current)).toEqual(["timestamp", "location"]);
   });
 
-  it("includes weather descriptions resolved from weathercode", async () => {
+  it("includes weather descriptions for the past snapshot", async () => {
     (prisma.intersection.findUniqueOrThrow as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeIntersection(PAST_FETCHED_AT, CURRENT_FETCHED_AT)
     );
@@ -168,8 +137,6 @@ describe("buildIntersectionPayload", () => {
     const payload = await buildIntersectionPayload(1);
     // weathercode 3 + isDay true → "Cloudy"
     expect(payload.past.weatherDescription).toBe("Cloudy");
-    // weathercode 61 + isDay false → "Light Rain"
-    expect(payload.current.weatherDescription).toBe("Light Rain");
   });
 
   it("always sets locationChanged to false (MVP)", async () => {
@@ -187,9 +154,6 @@ describe("generateIntersectionText", () => {
     vi.clearAllMocks();
     (prisma.intersection.findUniqueOrThrow as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeIntersection(PAST_FETCHED_AT, CURRENT_FETCHED_AT)
-    );
-    (prisma.weatherSnapshot.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
-      MOCK_CONTEXT_SNAPS
     );
     (prisma.intersectionText.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 1 });
   });

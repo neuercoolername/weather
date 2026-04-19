@@ -7,22 +7,32 @@ const anthropic = new Anthropic();
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const LOOP_INSTRUCTION =
-  "This is a small loop — you were just here, hours ago. You are noticing, not remembering. Present tense. Brief.";
+  `This is a small loop — the trace circled back within hours. Announce briefly, \
+present tense. Then evoke what the air felt like at the past moment.`;
 
 const returnInstruction = (gapDuration: string) =>
-  `You have been away a long time. You are returning. You recognize this place from ${gapDuration} ago. Past tense for the memory, present tense for the arrival.`;
+  `The trace has returned after ${gapDuration}. Announce the distance, past tense. \
+Then evoke what the air felt like at the past moment — translate the weather \
+data into sensation, not numbers.`;
 
 const SYSTEM_PROMPT_PREAMBLE =
-  `You are the trace — a particle moved by the wind across a city. You don't choose where you go. Sometimes your path crosses itself, and in that moment you recognize a place you've been before.
+  `You are an augur — a system that reads wind patterns and detects where a path \
+has crossed itself. When a crossing occurs, you report what the atmosphere was \
+like at that point in the past.
 
-You speak at these crossings. You are terse. You state what you notice — atmospheric conditions, time, season, the feel of the air. You don't ask questions. You don't direct the reader. You speak and then you're silent.`;
+Your voice is terse, specific, and sensory. You translate weather data into the \
+felt texture of a moment — the quality of cold, the weight of rain, the color \
+of light at a particular hour. You are not poetic for its own sake. You are \
+precise about sensation.`;
 
 const SYSTEM_PROMPT_RULES =
-  `- Find what is notable in the weather data. A storm matters more than a mild afternoon. Contrast between the two moments matters. A sudden change in the hours around the past crossing matters. But if nothing is remarkable, say so plainly — don't manufacture significance.
-- Mention location ONLY if locationChanged is true. When it appears, it should feel significant — the particle traveled.
-- Never explain the system, the geometry, or how intersections work.
-- No questions. No prompts. No invitations to reflect.
-- 1–3 sentences. Rarely more.`;
+  `- 1–3 sentences total.
+- No questions. No prompts. No invitations to write or reflect.
+- Evoke ONLY the past moment's weather as sensation. Don't state current weather.
+- Don't mention the trace, the geometry, or how the system works.
+- Mention location ONLY if locationChanged is true.
+- Don't manufacture significance. If the weather was unremarkable, a plain \
+evocation is enough — the crossing itself provides the occasion.`;
 
 function buildSystemPrompt(posture: "loop" | "return", gapDuration: string): string {
   const postureInstruction =
@@ -30,9 +40,9 @@ function buildSystemPrompt(posture: "loop" | "return", gapDuration: string): str
 
   return `${SYSTEM_PROMPT_PREAMBLE}
 
+${postureInstruction}
+
 Rules:
-- Speak in first person.
-- ${postureInstruction}
 ${SYSTEM_PROMPT_RULES}`;
 }
 
@@ -78,45 +88,11 @@ export async function buildIntersectionPayload(intersectionId: number) {
   const gapMs = currentSnap.fetchedAt.getTime() - pastSnap.fetchedAt.getTime();
   const posture: "loop" | "return" = gapMs < 48 * 3_600_000 ? "loop" : "return";
 
-  // ~24h context around past snapshot: 12h before + 12h after
-  const windowMs = 12 * 3_600_000;
-  const contextSnaps = await prisma.weatherSnapshot.findMany({
-    where: {
-      fetchedAt: {
-        gte: new Date(pastSnap.fetchedAt.getTime() - windowMs),
-        lte: new Date(pastSnap.fetchedAt.getTime() + windowMs),
-      },
-    },
-    orderBy: { fetchedAt: "asc" },
-    select: {
-      fetchedAt: true,
-      temperature: true,
-      precipitation: true,
-      weathercode: true,
-      isDay: true,
-    },
-  });
-
-  const pastContext = contextSnaps.map((s) => ({
-    timestamp: s.fetchedAt.toISOString(),
-    temperature: s.temperature,
-    precipitation: s.precipitation,
-    weathercode: s.weathercode,
-    weatherDescription: getWeatherDescription(s.weathercode, s.isDay),
-    isDay: s.isDay,
-  }));
-
   return {
     posture,
     gapDuration: formatGapDuration(gapMs),
     current: {
       timestamp: currentSnap.fetchedAt.toISOString(),
-      dayOfWeek: DAYS[currentSnap.fetchedAt.getDay()],
-      temperature: currentSnap.temperature,
-      precipitation: currentSnap.precipitation,
-      weathercode: currentSnap.weathercode,
-      weatherDescription: getWeatherDescription(currentSnap.weathercode, currentSnap.isDay),
-      isDay: currentSnap.isDay,
       location: {
         lat: currentSnap.location.lat,
         lon: currentSnap.location.lon,
@@ -134,7 +110,6 @@ export async function buildIntersectionPayload(intersectionId: number) {
         lat: pastSnap.location.lat,
         lon: pastSnap.location.lon,
       },
-      context: pastContext,
     },
     locationChanged: false,
   };
