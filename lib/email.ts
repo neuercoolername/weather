@@ -28,28 +28,33 @@ export async function sendIntersectionEmail({
   id,
   dateA,
   dateB,
+  text,
 }: {
   id: number;
   dateA: Date;
   dateB: Date;
+  text?: string;
 }): Promise<void> {
   const from = process.env.EMAIL_FROM!;
   const to = process.env.NOTIFICATION_EMAIL!;
   const formattedA = formatDate(dateA);
   const formattedB = formatDate(dateB);
 
+  const body = [
+    "The wind trace crossed itself.",
+    ...(text ? ["", text] : []),
+    "",
+    `${formattedA} and ${formattedB} now share a point.`,
+    "",
+    "---",
+    `Intersection ID: ${id}`,
+  ];
+
   await getResend().emails.send({
     from,
     to,
     replyTo: buildReplyTo(from, id),
     subject: `Intersection — ${formattedA} × ${formattedB}`,
-    text: [
-      "The wind trace crossed itself.",
-      "",
-      `${formattedA} and ${formattedB} now share a point.`,
-      "",
-      "---",
-      `Intersection ID: ${id}`,
-    ].join("\n"),
+    text: body.join("\n"),
   });
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { generateHaiku } from "@/lib/haiku";
 import { computeTracePoint, detectAndStoreIntersections } from "@/lib/trace";
 import { sendIntersectionEmail } from "@/lib/email";
+import { generateIntersectionText } from "@/lib/intersection-text";
 
 interface OpenMeteoResponse {
   current: {
@@ -83,13 +84,22 @@ async function storeTracePoint(
   return detectAndStoreIntersections(tracePoint.id, snapshotId, prevX, prevY, x, y);
 }
 
-async function notifyIntersections(
+export async function processIntersections(
   intersections: { id: number; dateA: Date; dateB: Date }[]
 ): Promise<void> {
   for (const ix of intersections) {
-    sendIntersectionEmail(ix).catch((err) =>
-      console.error(`[Email] Failed to send intersection email for Intersection #${ix.id}:`, err)
-    );
+    let text: string | undefined;
+    try {
+      text = await generateIntersectionText(ix.id);
+    } catch (err) {
+      console.error(`[IntersectionText] Failed for Intersection #${ix.id}:`, err);
+    }
+    console.log(`[Email] Sending email for Intersection #${ix.id}...`);
+    await sendIntersectionEmail({ ...ix, text })
+      .then(() => console.log(`[Email] Sent for Intersection #${ix.id}`))
+      .catch((err) =>
+        console.error(`[Email] Failed to send intersection email for Intersection #${ix.id}:`, err)
+      );
   }
 }
 
@@ -105,7 +115,7 @@ export async function fetchAndStoreWeather(
     console.error(`[WeatherCron] Failed to generate haiku for snapshot #${snapshot.id}:`, err)
   );
   storeTracePoint(snapshot.id, data.current.wind_direction_10m, data.current.wind_speed_10m)
-    .then(notifyIntersections)
+    .then(processIntersections)
     .catch((err) =>
       console.error(`[Trace] Failed to store trace point for snapshot #${snapshot.id}:`, err)
     );
