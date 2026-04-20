@@ -9,8 +9,11 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "backfill": "tsx scripts/backfill-trace.ts",
-    "reset-trace": "tsx scripts/reset-trace.ts"
+    "backfill:trace": "tsx scripts/backfill-trace.ts",
+    "backfill:texts": "tsx scripts/backfill-texts.ts",
+    "backfill:texts:email": "tsx scripts/backfill-texts.ts --email",
+    "reset-trace": "tsx scripts/reset-trace.ts",
+    "reset:texts": "tsx scripts/reset-texts.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
