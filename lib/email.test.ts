@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { formatDate, sendIntersectionEmail } from "./email";
 
+const mockSend = vi.fn().mockResolvedValue({});
+
 vi.mock("resend", () => ({
   Resend: class {
-    emails = { send: vi.fn().mockResolvedValue({}) };
+    emails = { send: mockSend };
   },
 }));
 
@@ -26,6 +28,18 @@ describe("sendIntersectionEmail", () => {
     await expect(
       sendIntersectionEmail({ ...BASE_ARGS, text: "I was here before." })
     ).resolves.toBeUndefined();
+  });
+
+  it("includes the admin link in the email body", async () => {
+    process.env.EMAIL_FROM = "trace@example.com";
+    process.env.NOTIFICATION_EMAIL = "me@example.com";
+    process.env.BASE_URL = "https://example.com";
+    await sendIntersectionEmail(BASE_ARGS);
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("/admin/intersections/1"),
+      })
+    );
   });
 });
 

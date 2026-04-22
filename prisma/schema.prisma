@@ -52,16 +52,28 @@ model TracePoint {
 }
 
 model Intersection {
-  id               Int               @id @default(autoincrement())
+  id               Int                  @id @default(autoincrement())
   tracePointIdA    Int
   tracePointIdB    Int
-  tracePointA      TracePoint        @relation("IntersectionA", fields: [tracePointIdA], references: [id])
-  tracePointB      TracePoint        @relation("IntersectionB", fields: [tracePointIdB], references: [id])
+  tracePointA      TracePoint           @relation("IntersectionA", fields: [tracePointIdA], references: [id])
+  tracePointB      TracePoint           @relation("IntersectionB", fields: [tracePointIdB], references: [id])
   x                Float
   y                Float
   text             String?
-  detectedAt       DateTime          @default(now())
+  detectedAt       DateTime             @default(now())
   intersectionText IntersectionText?
+  images           IntersectionImage[]
+}
+
+model IntersectionImage {
+  id             String       @id @default(cuid())
+  intersectionId Int
+  intersection   Intersection @relation(fields: [intersectionId], references: [id], onDelete: Cascade)
+  storageKey     String
+  caption        String?
+  createdAt      DateTime     @default(now())
+
+  @@index([intersectionId])
 }
 
 model IntersectionText {
