@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { zoom as d3zoom, zoomIdentity, ZoomTransform, ZoomBehavior } from "d3-zoom";
 import { select } from "d3-selection";
 import IntersectionDot from "./IntersectionDot";
-import IntersectionLabel from "./IntersectionLabel";
+import IntersectionPanel from "./IntersectionPanel";
 
 interface TracePoint {
   id: number;
@@ -22,6 +22,7 @@ interface Intersection {
   tracePointIdB: number;
   tracePointA: { snapshot: { fetchedAt: Date } };
   tracePointB: { snapshot: { fetchedAt: Date } };
+  images: { id: string; caption: string | null; signedUrl: string }[];
 }
 
 interface Props {
@@ -122,18 +123,12 @@ export default function TraceSVG({ tracePoints, intersections }: Props) {
         </g>
       </svg>
 
-      {/* HTML overlay label */}
-      {activeIntersection && (() => {
-        const sx = activeIntersection.x * transform.k + transform.x;
-        const sy = (-activeIntersection.y) * transform.k + transform.y;
-        return (
-          <IntersectionLabel
-            sx={sx}
-            sy={sy}
-            intersection={activeIntersection}
-          />
-        );
-      })()}
+      {activeIntersection && (
+        <IntersectionPanel
+          intersection={activeIntersection}
+          onClose={() => setActiveId(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { getSupabase, BUCKET, SIGNED_URL_EXPIRY } from "@/lib/supabase";
+import { getIntersectionWithImages } from "@/lib/intersections";
 import { formatDate } from "@/lib/email";
 import TextEditor from "./TextEditor";
 import ImageManager from "./ImageManager";
@@ -15,33 +14,10 @@ export default async function IntersectionDetailPage({
 }) {
   const { id } = await params;
 
-  const intersection = await prisma.intersection.findUnique({
-    where: { id: Number(id) },
-    select: {
-      id: true,
-      x: true,
-      y: true,
-      text: true,
-      detectedAt: true,
-      tracePointA: { select: { snapshot: { select: { fetchedAt: true } } } },
-      tracePointB: { select: { snapshot: { select: { fetchedAt: true } } } },
-      images: {
-        orderBy: { createdAt: "asc" },
-        select: { id: true, storageKey: true, caption: true },
-      },
-    },
-  });
-
+  const intersection = await getIntersectionWithImages(Number(id));
   if (!intersection) notFound();
 
-  const imagesWithUrls = await Promise.all(
-    intersection.images.map(async (img) => {
-      const { data } = await getSupabase().storage
-        .from(BUCKET)
-        .createSignedUrl(img.storageKey, SIGNED_URL_EXPIRY);
-      return { ...img, signedUrl: data?.signedUrl ?? "" };
-    })
-  );
+  const imagesWithUrls = intersection.images;
 
   const dateA = intersection.tracePointA.snapshot.fetchedAt;
   const dateB = intersection.tracePointB.snapshot.fetchedAt;
