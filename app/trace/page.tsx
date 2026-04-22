@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getAllIntersectionsWithImages } from "@/lib/intersections";
 import TraceSVG from "./TraceSVG";
 
 export const dynamic = "force-dynamic";
@@ -14,18 +15,7 @@ export default async function TracePage() {
         snapshot: { select: { fetchedAt: true } },
       },
     }),
-    prisma.intersection.findMany({
-      select: {
-        id: true,
-        x: true,
-        y: true,
-        text: true,
-        tracePointIdA: true,
-        tracePointIdB: true,
-        tracePointA: { select: { snapshot: { select: { fetchedAt: true } } } },
-        tracePointB: { select: { snapshot: { select: { fetchedAt: true } } } },
-      },
-    }),
+    getAllIntersectionsWithImages(),
   ]);
 
   if (tracePoints.length === 0) {
