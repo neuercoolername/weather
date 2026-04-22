@@ -48,6 +48,7 @@ export async function sendIntersectionEmail({
     "",
     "---",
     `Intersection ID: ${id}`,
+    `Respond: ${process.env.BASE_URL}/admin/intersections/${id}`,
   ];
 
   await getResend().emails.send({

@@ -45,7 +45,12 @@ Records when the wind trace crosses itself.
 - References two `TracePoint` IDs (not snapshot IDs)
 - Stores crossing coordinates `(x, y)`
 - `text` is nullable — user writes a short reflection per intersection, but doesn't have to
-- Relations: `intersectionText` (1-to-1 with `IntersectionText`)
+- Relations: `intersectionText` (1-to-1 with `IntersectionText`), `images` (1-to-many with `IntersectionImage`)
+
+### `IntersectionImage`
+Image attached to an intersection via the admin CMS.
+- Fields: `id` (cuid), `intersectionId` (FK), `storageKey` (path in Supabase Storage bucket `intersection-images`), `caption` (nullable), `createdAt`
+- Blobs stored in Supabase Storage (private bucket); access via server-generated signed URLs (1h)
 
 ### `IntersectionText`
 LLM-generated text per intersection. 1-to-1 with `Intersection`.
@@ -81,7 +86,16 @@ Key files: `lib/intersection-text.ts`
 Sends a plain-text email via Resend when a new intersection is detected.
 Fire-and-forget — a failed send never breaks the weather-fetch cycle.
 Reply-to address is pre-set to `trace+<id>@<domain>` for future inbound handling.
-Requires env vars: `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM`.
+Email includes a direct link to the admin CMS detail page (`BASE_URL/admin/intersections/<id>`).
+Requires env vars: `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM`, `BASE_URL`.
+
+### Admin CMS ✅
+Single-password admin interface at `/admin/*` for editing intersection text and managing images.
+- Auth: `iron-session` cookie (`ADMIN_PASSWORD`, `SESSION_SECRET`); in-memory brute-force protection (5 attempts/IP/15min)
+- Pages: `/admin/login`, `/admin/intersections` (paginated list), `/admin/intersections/[id]` (detail/edit)
+- Image storage: Supabase Storage bucket `intersection-images` (private); signed URLs generated server-side
+- Requires env vars: `ADMIN_PASSWORD`, `SESSION_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BASE_URL`
+- Key files: `middleware.ts`, `lib/session-config.ts`, `lib/session.ts`, `lib/supabase.ts`, `lib/rate-limit.ts`, `app/admin/`
 
 ---
 
@@ -95,7 +109,10 @@ Requires env vars: `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM`.
 - `app/trace/IntersectionDot.tsx` — SVG dot + hit area, fixed screen-pixel size
 - `app/trace/IntersectionLabel.tsx` — HTML overlay label, anchored to dot
 - `app/api/location/route.ts` — POST endpoint receiving GPS coordinates from iOS app
-- `app/api/intersections/[id]/route.ts` — GET removed, POST authenticated
+- `app/api/admin/login/route.ts`, `app/api/admin/logout/route.ts` — admin auth
+- `app/api/admin/intersections/[id]/route.ts` — PATCH intersection text
+- `app/api/admin/intersections/[id]/images/route.ts` — POST image upload
+- `app/api/admin/intersections/[id]/images/[imageId]/route.ts` — PATCH caption, DELETE image
 - `scripts/backfill-trace.ts` — one-time backfill for pre-existing snapshots
 - `scripts/reset-trace.ts` — deletes all trace points and intersections from DB
 - `docs/backlog.md` — project backlog
