@@ -5,6 +5,7 @@ import { zoom as d3zoom, zoomIdentity, ZoomTransform, ZoomBehavior } from "d3-zo
 import { select } from "d3-selection";
 import IntersectionDot from "./IntersectionDot";
 import IntersectionPanel from "./IntersectionPanel";
+import { computeWeaveSegments, buildWeavePaths } from "@/lib/weave";
 
 interface TracePoint {
   id: number;
@@ -75,9 +76,14 @@ export default function TraceSVG({ tracePoints, intersections }: Props) {
     );
   }, []); // tracePoints are stable (server-rendered)
 
-  // Stored coords are Cartesian (y-up). Negate y here to convert to SVG screen convention (y-down).
-  const points = tracePoints.map((p) => `${p.x},${-p.y}`).join(" ");
   const activeIntersection = intersections.find((ix) => ix.id === activeId) ?? null;
+
+  // Weave rendering: split segments at crossings, gap the under-segment.
+  // flipY converts Cartesian y-up → SVG y-down at the render boundary.
+  const weavePaths = buildWeavePaths(
+    computeWeaveSegments(tracePoints, intersections),
+    true
+  );
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -88,15 +94,18 @@ export default function TraceSVG({ tracePoints, intersections }: Props) {
       >
         {/* Content layer — scales and pans with zoom */}
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
-          <polyline
-            points={points}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            opacity={0.6}
-          />
+          {weavePaths.map((d, i) => (
+            <path
+              key={i}
+              d={d}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              opacity={0.6}
+            />
+          ))}
         </g>
 
         {/* UI layer — dots at fixed screen-pixel size */}
