@@ -50,11 +50,12 @@ export async function sendIntersectionEmail({
     `Intersection ID: ${id}`,
   ];
 
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from,
     to,
     replyTo: buildReplyTo(from, id),
     subject: `Intersection — ${formattedA} × ${formattedB}`,
     text: body.join("\n"),
   });
+  if (error) throw error;
 }
