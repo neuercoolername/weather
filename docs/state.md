@@ -71,9 +71,16 @@ Public page at `/trace` renders full SVG path with interactive intersection dots
 Authenticated POST to `/api/intersections/[id]` to add writing.
 
 ### Wind trace UI rebuild ✅
-d3-zoom two-layer SVG: polyline scales with camera, dots stay fixed pixel size.
+d3-zoom two-layer SVG: trace scales with camera, dots stay fixed pixel size.
 HTML overlay label anchored to active dot; tracks during zoom/pan.
 Components: `TraceSVG` (orchestrator), `IntersectionDot`, `IntersectionLabel`.
+
+### Intersection weave visualization ✅
+At each self-crossing the trace renders a weave: the chronologically older segment shows a small gap,
+the newer segment passes through unbroken. Implemented as a pure geometry layer in `lib/weave.ts`
+(`computeWeaveSegments`, `buildWeavePaths`). The trace is now rendered as grouped `<path>` elements
+instead of a single `<polyline>`. Gap is 2.5 content-space units (zoom-invariant); capped at 25% of
+any sub-segment to prevent degenerate stubs. No changes to detection logic or data model.
 
 ### Intersection text generation ✅
 At intersection detection time, Claude Haiku generates a short text spoken in the voice of the trace particle.
@@ -102,6 +109,7 @@ Single-password admin interface at `/admin/*` for editing intersection text and 
 ## Key files
 - `lib/weather.ts` — fetch, store snapshot, store trace point, fire intersection detection + email notification
 - `lib/trace.ts` — pure geometry: `computeTracePoint`, `segmentsIntersect`, `detectAndStoreIntersections`
+- `lib/weave.ts` — `computeWeaveSegments`, `buildWeavePaths` (weave rendering geometry)
 - `lib/email.ts` — Resend client, `formatDate`, `sendIntersectionEmail`
 - `lib/intersection-text.ts` — `formatGapDuration`, `buildIntersectionPayload`, `generateIntersectionText`
 - `app/trace/page.tsx` — server component, fetches all trace points + intersections
