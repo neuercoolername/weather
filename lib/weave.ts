@@ -1,4 +1,4 @@
-export const GAP_SIZE = 100; // content-space units; tune by eye after first render
+export const GAP_SIZE = 10; // content-space units
 
 interface Point {
   x: number;
@@ -19,7 +19,7 @@ function dist(a: Point, b: Point): number {
 export function computeWeaveSegments(
   tracePoints: { id: number; x: number; y: number }[],
   intersections: { x: number; y: number; tracePointIdA: number; tracePointIdB: number }[],
-  gapSize: number = GAP_SIZE
+  gapSize: number = GAP_SIZE,
 ): SubSegment[] {
   if (tracePoints.length < 2) return [];
 
@@ -36,15 +36,6 @@ export function computeWeaveSegments(
     const segIdx = ia - 1;
     if (!crossingsPerSeg.has(segIdx)) crossingsPerSeg.set(segIdx, []);
     crossingsPerSeg.get(segIdx)!.push({ x: ix.x, y: ix.y });
-  }
-
-  // DIAGNOSTIC: log what the intersection loop actually sees
-  console.log('[weave] tracePoints.length:', tracePoints.length, 'intersections.length:', intersections.length, 'crossingsPerSeg.size:', crossingsPerSeg.size);
-  if (intersections.length > 0) {
-    const ix0 = intersections[0];
-    const ia = idToIndex.get(ix0.tracePointIdA);
-    console.log('[weave] first ix tracePointIdA:', ix0.tracePointIdA, typeof ix0.tracePointIdA, '→ ia:', ia);
-    console.log('[weave] idToIndex sample keys:', [...idToIndex.keys()].slice(0, 5));
   }
 
   const result: SubSegment[] = [];
@@ -87,14 +78,14 @@ export function computeWeaveSegments(
         // Final piece — draw straight to B
         result.push({ start: from, end: B });
       } else {
-        // to is a crossing — apply a gap centered on it
+        // to is a crossing — gap each side independently, capped to available space
         const distBefore = dist(from, to);
         const distAfter = dist(to, pts[j + 1]);
-        // Cap gap so both pieces keep at least 60% of their available room
-        const g = Math.min(gapHalf, distBefore * 0.4, distAfter * 0.4);
+        const gBefore = Math.min(gapHalf, distBefore);
+        const gAfter  = Math.min(gapHalf, distAfter);
 
-        result.push({ start: from, end: { x: to.x - dx * g, y: to.y - dy * g } });
-        from = { x: to.x + dx * g, y: to.y + dy * g };
+        result.push({ start: from, end: { x: to.x - dx * gBefore, y: to.y - dy * gBefore } });
+        from = { x: to.x + dx * gAfter, y: to.y + dy * gAfter };
       }
     }
   }

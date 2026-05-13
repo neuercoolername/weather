@@ -79,8 +79,13 @@ Components: `TraceSVG` (orchestrator), `IntersectionDot`, `IntersectionLabel`.
 At each self-crossing the trace renders a weave: the chronologically older segment shows a small gap,
 the newer segment passes through unbroken. Implemented as a pure geometry layer in `lib/weave.ts`
 (`computeWeaveSegments`, `buildWeavePaths`). The trace is now rendered as grouped `<path>` elements
-instead of a single `<polyline>`. Gap is 2.5 content-space units (zoom-invariant); capped at 25% of
-any sub-segment to prevent degenerate stubs. No changes to detection logic or data model.
+instead of a single `<polyline>`.
+
+Gap size is `GAP_SIZE = 10` content-space units (zoom-invariant). The gap formula is asymmetric:
+each side is capped independently to the available space — `gBefore = min(gapHalf, distBefore)`,
+`gAfter = min(gapHalf, distAfter)`. This ensures every crossing is always visible, at the cost of
+visual skew when a crossing is near a segment endpoint (see backlog for the constraint triangle and
+future direction).
 
 ### Intersection text generation ✅
 At intersection detection time, Claude Haiku generates a short text spoken in the voice of the trace particle.
