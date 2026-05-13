@@ -99,19 +99,18 @@ describe("computeWeaveSegments", () => {
     expect(seg0[2].end).toEqual({ x: 30, y: 0 });
   });
 
-  it("gap is capped symmetrically using the shorter of the two adjacent sub-segments", () => {
-    // Segment 0: length 2, crossing at x=1.9 → sub-seg A=1.9 units, sub-seg B=0.1 units
-    // Shared cap = min(1.9, 0.1) * 0.25 = 0.025 → both sides use 0.025
+  it("gap is capped independently on each side when crossing is near an endpoint", () => {
+    // Segment 0: length 2, crossing at x=1.9 → distBefore=1.9, distAfter=0.1
+    // gapHalf=1.25: gBefore=min(1.25,1.9)=1.25, gAfter=min(1.25,0.1)=0.1
     const points = [pt(1, 0, 0), pt(2, 2, 0), pt(3, 5, 5)];
     const crossingX = 1.9;
     const intersections = [{ x: crossingX, y: 0, tracePointIdA: 2, tracePointIdB: 3 }];
     const subs = computeWeaveSegments(points, intersections, 2.5);
 
-    const sharedCap = Math.min(1.9, 0.1) * 0.25; // 0.025
-    // Sub-seg A: end retreated by sharedCap from crossing
-    expect(subs[0].end.x).toBeCloseTo(crossingX - sharedCap);
-    // Sub-seg B: start advanced by sharedCap from crossing
-    expect(subs[1].start.x).toBeCloseTo(crossingX + sharedCap);
+    // Sub-seg A: end retreated by gBefore=1.25 from crossing
+    expect(subs[0].end.x).toBeCloseTo(crossingX - 1.25); // 0.65
+    // Sub-seg B: start advanced by gAfter=0.1 from crossing (= end of segment)
+    expect(subs[1].start.x).toBeCloseTo(crossingX + 0.1); // 2.0
     expect(subs[1].end).toEqual({ x: 2, y: 0 });
   });
 
