@@ -27,38 +27,66 @@ function formatDate(d: Date): string {
 export default function IntersectionPanel({
   intersection,
   onClose,
+  onPrev,
+  onNext,
 }: {
   intersection: Intersection;
   onClose: () => void;
+  onPrev: (() => void) | null;
+  onNext: (() => void) | null;
 }) {
   const [expandedImage, setExpandedImage] = useState<Image | null>(null);
 
   useEffect(() => {
-    if (!expandedImage) return;
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setExpandedImage(null);
+      if (e.key === "Escape") {
+        if (expandedImage) setExpandedImage(null);
+        else onClose();
+      } else if (e.key === "ArrowLeft") {
+        onPrev?.();
+      } else if (e.key === "ArrowRight") {
+        onNext?.();
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [expandedImage]);
+  }, [expandedImage, onClose, onPrev, onNext]);
 
   const dateLabel = `${formatDate(intersection.tracePointA.snapshot.fetchedAt)} × ${formatDate(intersection.tracePointB.snapshot.fetchedAt)}`;
 
   return (
     <>
       <div
-        className="absolute bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-6 max-h-[50vh] overflow-y-auto"
+        className="absolute top-0 right-0 bottom-0 w-[33vw] bg-white border-l border-zinc-200 p-6 overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="max-w-2xl mx-auto space-y-4">
-          <div className="flex items-baseline justify-between">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
             <p className="text-sm text-zinc-500">{dateLabel}</p>
-            <button
-              onClick={onClose}
-              className="text-sm text-zinc-400 hover:text-zinc-900"
-            >
-              close
-            </button>
+            <div className="flex items-center gap-1 text-zinc-400">
+              <button
+                onClick={onPrev ?? undefined}
+                disabled={onPrev === null}
+                className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900 disabled:opacity-20"
+                title="previous (←)"
+              >
+                ←
+              </button>
+              <button
+                onClick={onNext ?? undefined}
+                disabled={onNext === null}
+                className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900 disabled:opacity-20"
+                title="next (→)"
+              >
+                →
+              </button>
+              <button
+                onClick={onClose}
+                className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {intersection.text && (
@@ -66,13 +94,13 @@ export default function IntersectionPanel({
           )}
 
           {intersection.images.length > 0 && (
-            <div className="flex gap-4 overflow-x-auto pb-1">
+            <div className="space-y-4">
               {intersection.images.map((img) => (
-                <figure key={img.id} className="shrink-0 space-y-1">
+                <figure key={img.id} className="space-y-1">
                   <img
                     src={img.signedUrl}
                     alt={img.caption ?? ""}
-                    className="h-40 w-auto object-contain cursor-pointer"
+                    className="w-full max-h-[60vh] object-contain cursor-pointer"
                     onClick={() => setExpandedImage(img)}
                   />
                   {img.caption && (
