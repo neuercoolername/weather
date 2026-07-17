@@ -33,6 +33,10 @@ Next.js, PostgreSQL, Prisma, Vitest, Open-Meteo API
 - Update `/README.md` if major changes have been made
 - Update `docs/backlog.md` if applicable
 
+### Database
+- NEVER run `prisma db push --accept-data-loss` without first showing the user the exact table names and row counts from the warning and getting explicit confirmation
+- `prisma db push` is for local dev only — production schema changes must be confirmed manually
+
 ### General
 - Keep changes small and incremental
 - Prefer explicit over clever
