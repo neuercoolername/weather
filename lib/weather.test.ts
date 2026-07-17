@@ -7,21 +7,12 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     weatherSnapshot: { create: vi.fn() },
     tracePoint: { findFirst: vi.fn(), create: vi.fn() },
-    haiku: { create: vi.fn() },
   },
-}));
-
-vi.mock("@/lib/haiku", () => ({
-  generateHaiku: vi.fn().mockResolvedValue("mock haiku"),
 }));
 
 vi.mock("@/lib/trace", () => ({
   computeTracePoint: vi.fn().mockReturnValue({ x: 5, y: -3 }),
   detectAndStoreIntersections: vi.fn().mockResolvedValue([]),
-}));
-
-vi.mock("@/lib/intersection-text", () => ({
-  generateIntersectionText: vi.fn().mockResolvedValue("mock intersection text"),
 }));
 
 const mockWeatherData = {

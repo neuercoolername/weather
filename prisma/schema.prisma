@@ -28,16 +28,7 @@ model WeatherSnapshot {
   isDay         Boolean
   rawJson       Json
   fetchedAt     DateTime     @default(now())
-  haiku         Haiku?
   tracePoint    TracePoint?
-}
-
-model Haiku {
-  id         Int             @id @default(autoincrement())
-  snapshotId Int             @unique
-  snapshot   WeatherSnapshot @relation(fields: [snapshotId], references: [id])
-  text       String
-  createdAt  DateTime        @default(now())
 }
 
 model TracePoint {
@@ -61,7 +52,6 @@ model Intersection {
   y                Float
   text             String?
   detectedAt       DateTime             @default(now())
-  intersectionText IntersectionText?
   images           IntersectionImage[]
 }
 
@@ -76,11 +66,3 @@ model IntersectionImage {
   @@index([intersectionId])
 }
 
-model IntersectionText {
-  id             Int          @id @default(autoincrement())
-  intersectionId Int          @unique
-  intersection   Intersection @relation(fields: [intersectionId], references: [id])
-  text           String
-  promptPayload  Json?
-  createdAt      DateTime     @default(now())
-}

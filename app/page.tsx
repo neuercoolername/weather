@@ -1,30 +1,50 @@
 import { prisma } from "@/lib/prisma";
+import { getAllIntersectionsWithImages } from "@/lib/intersections";
+import TraceSVG from "./trace/TraceSVG";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const snapshot = await prisma.weatherSnapshot.findFirst({
-    orderBy: { fetchedAt: "desc" },
-    include: { haiku: true },
-  });
+  const [tracePoints, intersections, latestSnapshot] = await Promise.all([
+    prisma.tracePoint.findMany({
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        x: true,
+        y: true,
+        snapshot: { select: { fetchedAt: true } },
+      },
+    }),
+    getAllIntersectionsWithImages(),
+    prisma.weatherSnapshot.findFirst({
+      orderBy: { fetchedAt: "desc" },
+      select: { windspeed: true, rawJson: true },
+    }),
+  ]);
 
-  if (!snapshot?.haiku) {
+  if (tracePoints.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-lg">
-          Waiting for weather...
-        </p>
+        <p className="text-lg text-zinc-500">No trace data yet.</p>
       </div>
     );
   }
 
+  const rawJson = latestSnapshot?.rawJson as { current?: { wind_direction_10m?: number } } | null;
+  const latestWind = latestSnapshot
+    ? {
+        speedKph: latestSnapshot.windspeed,
+        directionDeg: rawJson?.current?.wind_direction_10m ?? 0,
+      }
+    : null;
+
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <main className="flex flex-col items-center gap-8 p-8">
-        <p className="whitespace-pre-line text-2xl font-light italic leading-relaxed tracking-wide">
-          {snapshot.haiku.text}
-        </p>
-      </main>
+    <div className="w-full h-screen">
+      <TraceSVG
+        tracePoints={tracePoints}
+        intersections={intersections}
+        latestWind={latestWind}
+      />
     </div>
   );
 }
