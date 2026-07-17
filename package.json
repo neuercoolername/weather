@@ -18,8 +18,10 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
     "@prisma/client": "^6.19.2",
+    "@supabase/supabase-js": "^2.104.0",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
+    "iron-session": "^8.0.4",
     "next": "16.1.6",
     "node-cron": "^4.2.1",
     "react": "19.2.3",

@@ -45,5 +45,8 @@ next-env.d.ts
 
 # instructions
 instructions.md
+.vscode/tasks.json
+docs/features/intersectionVisualization/detailview.md
+
 docs/features/intersectionVisualization/detailview.md
 .vscode/tasks.json
