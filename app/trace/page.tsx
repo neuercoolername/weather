@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { getAllIntersectionsWithImages } from "@/lib/intersections";
 import TraceSVG from "./TraceSVG";
 
 export const dynamic = "force-dynamic";
 
 export default async function TracePage() {
-  const [tracePoints, intersections] = await Promise.all([
+  const [tracePoints, intersections, latestSnapshot] = await Promise.all([
     prisma.tracePoint.findMany({
       orderBy: { createdAt: "asc" },
       select: {
@@ -14,17 +15,10 @@ export default async function TracePage() {
         snapshot: { select: { fetchedAt: true } },
       },
     }),
-    prisma.intersection.findMany({
-      select: {
-        id: true,
-        x: true,
-        y: true,
-        text: true,
-        tracePointIdA: true,
-        tracePointIdB: true,
-        tracePointA: { select: { snapshot: { select: { fetchedAt: true } } } },
-        tracePointB: { select: { snapshot: { select: { fetchedAt: true } } } },
-      },
+    getAllIntersectionsWithImages(),
+    prisma.weatherSnapshot.findFirst({
+      orderBy: { fetchedAt: "desc" },
+      select: { windspeed: true, rawJson: true },
     }),
   ]);
 
@@ -36,9 +30,21 @@ export default async function TracePage() {
     );
   }
 
+  const rawJson = latestSnapshot?.rawJson as { current?: { wind_direction_10m?: number } } | null;
+  const latestWind = latestSnapshot
+    ? {
+        speedKph: latestSnapshot.windspeed,
+        directionDeg: rawJson?.current?.wind_direction_10m ?? 0,
+      }
+    : null;
+
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <TraceSVG tracePoints={tracePoints} intersections={intersections} />
+    <div className="w-full h-screen">
+      <TraceSVG
+        tracePoints={tracePoints}
+        intersections={intersections}
+        latestWind={latestWind}
+      />
     </div>
   );
 }

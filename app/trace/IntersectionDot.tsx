@@ -32,9 +32,11 @@ export default function IntersectionDot({
       <circle
         cx={sx}
         cy={sy}
-        r={isHovered ? 10 : 8}
-        fill="currentColor"
-        opacity={isActive ? 1 : 0.5}
+        r={isHovered || isActive ? 15 : 8}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={isActive ? 2 : 1}
+        opacity={1 }
         style={{ transition: "r 0.1s, opacity 0.1s" }}
         pointerEvents="none"
       />
