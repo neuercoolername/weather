@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getIntersectionWithImages } from "@/lib/intersections";
+import { getIntersectionWithImages, getAdjacentIntersectionIds } from "@/lib/intersections";
 import { formatDate } from "@/lib/email";
 import TextEditor from "./TextEditor";
 import ImageManager from "./ImageManager";
+import IntersectionNav from "./IntersectionNav";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ export default async function IntersectionDetailPage({
   const intersection = await getIntersectionWithImages(Number(id));
   if (!intersection) notFound();
 
+  const { prevId, nextId } = await getAdjacentIntersectionIds(
+    intersection.id,
+    intersection.detectedAt
+  );
+
   const imagesWithUrls = intersection.images;
 
   const dateA = intersection.tracePointA.snapshot.fetchedAt;
@@ -24,13 +30,15 @@ export default async function IntersectionDetailPage({
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-12">
-      <div className="mb-10 space-y-1 text-sm text-zinc-500">
+      <div className="mb-10 flex items-center justify-between text-sm text-zinc-500">
         <Link href="/admin/intersections" className="hover:text-zinc-900">
           ← intersections
         </Link>
+        <IntersectionNav prevId={prevId} nextId={nextId} />
       </div>
 
       <div className="mb-8 space-y-1 text-sm text-zinc-500">
+        <p className="text-xs font-mono text-zinc-400">#{intersection.id}</p>
         <p>
           {formatDate(dateA)} × {formatDate(dateB)}
         </p>

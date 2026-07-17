@@ -42,6 +42,25 @@ export async function getAllIntersectionsWithImages() {
   );
 }
 
+export async function getAdjacentIntersectionIds(
+  id: number,
+  detectedAt: Date
+): Promise<{ prevId: number | null; nextId: number | null }> {
+  const [prev, next] = await Promise.all([
+    prisma.intersection.findFirst({
+      where: { detectedAt: { gt: detectedAt } },
+      orderBy: { detectedAt: "asc" },
+      select: { id: true },
+    }),
+    prisma.intersection.findFirst({
+      where: { detectedAt: { lt: detectedAt } },
+      orderBy: { detectedAt: "desc" },
+      select: { id: true },
+    }),
+  ]);
+  return { prevId: prev?.id ?? null, nextId: next?.id ?? null };
+}
+
 export async function getIntersectionWithImages(id: number) {
   const intersection = await prisma.intersection.findUnique({
     where: { id },
