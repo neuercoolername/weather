@@ -13,4 +13,4 @@ export function getSupabase(): SupabaseClient {
 }
 
 export const BUCKET = "intersection-images";
-export const SIGNED_URL_EXPIRY = 3600;
+export const SIGNED_URL_EXPIRY = 86400;
