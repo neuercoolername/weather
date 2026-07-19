@@ -21,7 +21,7 @@ jobs:
       - name: Run pg_dump
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
-        run: pg_dump "$DIRECT_URL" -Fc -f backup.dump
+        run: /usr/lib/postgresql/17/bin/pg_dump "$DIRECT_URL" -Fc -f backup.dump
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
