@@ -34,8 +34,10 @@ Next.js, PostgreSQL, Prisma, Vitest, Open-Meteo API
 - Update `docs/backlog.md` if applicable
 
 ### Database
-- NEVER run `prisma db push --accept-data-loss` without first showing the user the exact table names and row counts from the warning and getting explicit confirmation
-- `prisma db push` is for local dev only — production schema changes must be confirmed manually
+- Schema changes: `npx prisma migrate dev --name <description>` — generates a SQL file in `prisma/migrations/`, review it, then commit it alongside the code change
+- Production migrations run automatically via CI/CD (`prisma migrate deploy`) on every deploy to main
+- `prisma db push` is BANNED — never use it
+- NEVER run any destructive DB command without showing the user exact table names and row counts and getting explicit confirmation
 
 ### General
 - Keep changes small and incremental

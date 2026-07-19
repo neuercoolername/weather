@@ -27,6 +27,21 @@ jobs:
           push: true
           tags: ghcr.io/neuercoolername/weather:latest
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx prisma migrate deploy
+
       - name: Deploy on server
         uses: and-fm/cloudflared-ssh-action@v3
         with:
