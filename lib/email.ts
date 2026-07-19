@@ -28,12 +28,10 @@ export async function sendIntersectionEmail({
   id,
   dateA,
   dateB,
-  text,
 }: {
   id: number;
   dateA: Date;
   dateB: Date;
-  text?: string;
 }): Promise<void> {
   const from = process.env.EMAIL_FROM!;
   const to = process.env.NOTIFICATION_EMAIL!;
@@ -42,7 +40,6 @@ export async function sendIntersectionEmail({
 
   const body = [
     "The wind trace crossed itself.",
-    ...(text ? ["", text] : []),
     "",
     `${formattedA} and ${formattedB} now share a point.`,
     "",

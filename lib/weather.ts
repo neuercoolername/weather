@@ -1,9 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { generateHaiku } from "@/lib/haiku";
 import { computeTracePoint, detectAndStoreIntersections } from "@/lib/trace";
 import { sendIntersectionEmail } from "@/lib/email";
-import { generateIntersectionText } from "@/lib/intersection-text";
 
 interface OpenMeteoResponse {
   current: {
@@ -65,12 +63,6 @@ async function storeSnapshot(locationId: number, data: OpenMeteoResponse) {
   return snapshot;
 }
 
-async function storeHaiku(snapshotId: number, data: OpenMeteoResponse) {
-  const text = await generateHaiku(data);
-  await prisma.haiku.create({ data: { snapshotId, text } });
-  console.log(`[WeatherCron] Haiku generated for snapshot #${snapshotId}`);
-}
-
 async function storeTracePoint(
   snapshotId: number,
   windDirection: number,
@@ -88,14 +80,8 @@ export async function processIntersections(
   intersections: { id: number; dateA: Date; dateB: Date }[]
 ): Promise<void> {
   for (const ix of intersections) {
-    let text: string | undefined;
-    try {
-      text = await generateIntersectionText(ix.id);
-    } catch (err) {
-      console.error(`[IntersectionText] Failed for Intersection #${ix.id}:`, err);
-    }
     console.log(`[Email] Sending email for Intersection #${ix.id}...`);
-    await sendIntersectionEmail({ ...ix, text })
+    await sendIntersectionEmail(ix)
       .then(() => console.log(`[Email] Sent for Intersection #${ix.id}`))
       .catch((err) =>
         console.error(`[Email] Failed to send intersection email for Intersection #${ix.id}:`, err)
@@ -111,9 +97,6 @@ export async function fetchAndStoreWeather(
   const data = await fetchWeather(lat, lon) as OpenMeteoResponse;
   const snapshot = await storeSnapshot(locationId, data);
 
-  storeHaiku(snapshot.id, data).catch((err) =>
-    console.error(`[WeatherCron] Failed to generate haiku for snapshot #${snapshot.id}:`, err)
-  );
   storeTracePoint(snapshot.id, data.current.wind_direction_10m, data.current.wind_speed_10m)
     .then(processIntersections)
     .catch((err) =>
