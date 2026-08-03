@@ -115,7 +115,9 @@ export default function TraceSVG({ tracePoints, intersections, latestWind }: Pro
     requestAnimationFrame(step);
   }, [activeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sorted = [...intersections].sort((a, b) => a.id - b.id);
+  const textIntersections = intersections.filter((ix) => ix.text?.trim());
+
+  const sorted = [...textIntersections].sort((a, b) => a.id - b.id);
   const activeIndex = activeId !== null ? sorted.findIndex((ix) => ix.id === activeId) : -1;
   const prevId = activeIndex > 0 ? sorted[activeIndex - 1].id : null;
   const nextId = activeIndex !== -1 && activeIndex < sorted.length - 1 ? sorted[activeIndex + 1].id : null;
@@ -154,7 +156,7 @@ export default function TraceSVG({ tracePoints, intersections, latestWind }: Pro
 
         {/* UI layer — dots at fixed screen-pixel size */}
         <g>
-          {intersections.map((ix) => {
+          {textIntersections.map((ix) => {
             const sx = ix.x * transform.k + transform.x;
             const sy = (-ix.y) * transform.k + transform.y;
             return (
