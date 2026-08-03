@@ -54,38 +54,45 @@ export default function IntersectionPanel({
 
   const dateLabel = `${formatDate(intersection.tracePointA.snapshot.fetchedAt)} × ${formatDate(intersection.tracePointB.snapshot.fetchedAt)}`;
 
+  const navButtons = (
+    <>
+      <button
+        onClick={onPrev ?? undefined}
+        disabled={onPrev === null}
+        className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900 disabled:opacity-20"
+        title="previous (←)"
+      >
+        ←
+      </button>
+      <button
+        onClick={onNext ?? undefined}
+        disabled={onNext === null}
+        className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900 disabled:opacity-20"
+        title="next (→)"
+      >
+        →
+      </button>
+      <button
+        onClick={onClose}
+        className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900"
+      >
+        ✕
+      </button>
+    </>
+  );
+
   return (
     <>
       <div
-        className="absolute inset-x-0 bottom-0 max-h-[70vh] rounded-t-2xl border-t border-zinc-200 md:inset-x-auto md:top-0 md:right-0 md:bottom-0 md:max-h-none md:w-[33vw] md:rounded-none md:border-t-0 md:border-l bg-white p-6 overflow-y-auto"
+        className="fixed z-20 top-0 right-0 bottom-0 left-0 md:left-auto flex flex-col md:absolute md:w-[33vw] bg-white md:border-l border-zinc-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="flex items-center justify-between">
             <p className="text-sm text-zinc-500">{dateLabel}</p>
-            <div className="flex items-center gap-1 text-zinc-400">
-              <button
-                onClick={onPrev ?? undefined}
-                disabled={onPrev === null}
-                className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900 disabled:opacity-20"
-                title="previous (←)"
-              >
-                ←
-              </button>
-              <button
-                onClick={onNext ?? undefined}
-                disabled={onNext === null}
-                className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900 disabled:opacity-20"
-                title="next (→)"
-              >
-                →
-              </button>
-              <button
-                onClick={onClose}
-                className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900"
-              >
-                ✕
-              </button>
+            {/* Desktop: nav sits inline with the date label */}
+            <div className="hidden md:flex items-center gap-1 text-zinc-400">
+              {navButtons}
             </div>
           </div>
 
@@ -112,6 +119,11 @@ export default function IntersectionPanel({
               ))}
             </div>
           )}
+        </div>
+
+        {/* Mobile: nav lives in a bottom bar, within thumb's reach */}
+        <div className="shrink-0 border-t border-zinc-200 p-2 flex items-center justify-center gap-6 text-zinc-400 md:hidden">
+          {navButtons}
         </div>
       </div>
 

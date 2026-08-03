@@ -33,7 +33,6 @@ interface Props {
 }
 
 const PANEL_WIDTH_FRACTION = 0.33; // desktop: right-side panel width
-const SHEET_VISIBLE_CENTER_FRACTION = 0.3; // mobile: vertical center of the area above the bottom sheet
 const MOBILE_BREAKPOINT = 768; // matches Tailwind's `md`
 const PAN_DURATION = 400;
 
@@ -95,12 +94,13 @@ export default function TraceSVG({ tracePoints, intersections, latestWind }: Pro
     const ix = intersections.find((i) => i.id === activeId);
     if (!ix) return;
 
+    // On mobile the detail view covers the full screen, so there's no
+    // partial area to center within — just center the viewport itself,
+    // so the dot lands centered once the view is dismissed.
     const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
     const panelWidth = isMobile ? 0 : window.innerWidth * PANEL_WIDTH_FRACTION;
     const targetScreenX = (window.innerWidth - panelWidth) / 2;
-    const targetScreenY = isMobile
-      ? window.innerHeight * SHEET_VISIBLE_CENTER_FRACTION
-      : window.innerHeight / 2;
+    const targetScreenY = window.innerHeight / 2;
     const from = transformRef.current;
     const toTx = targetScreenX - ix.x * from.k;
     const toTy = targetScreenY - (-ix.y) * from.k;
