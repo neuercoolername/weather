@@ -57,7 +57,7 @@ export default function IntersectionPanel({
   return (
     <>
       <div
-        className="absolute top-0 right-0 bottom-0 w-[33vw] bg-white border-l border-zinc-200 p-6 overflow-y-auto"
+        className="absolute inset-x-0 bottom-0 max-h-[70vh] rounded-t-2xl border-t border-zinc-200 md:inset-x-auto md:top-0 md:right-0 md:bottom-0 md:max-h-none md:w-[33vw] md:rounded-none md:border-t-0 md:border-l bg-white p-6 overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="space-y-6">
