@@ -50,3 +50,7 @@ docs/features/intersectionVisualization/detailview.md
 
 docs/features/intersectionVisualization/detailview.md
 .vscode/tasks.json
+
+# local dev tooling / agent config
+.mcp.json
+.playwright-mcp/
