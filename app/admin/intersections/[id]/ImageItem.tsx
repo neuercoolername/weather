@@ -48,7 +48,7 @@ export default function ImageItem({ intersectionId, image }: Props) {
         alt={image.caption ?? ""}
         className="max-w-full max-h-96 object-contain"
       />
-      <div className="flex items-baseline gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4">
         <input
           type="text"
           defaultValue={image.caption ?? ""}
@@ -56,33 +56,35 @@ export default function ImageItem({ intersectionId, image }: Props) {
           placeholder="caption"
           className="flex-1 border-b border-zinc-200 bg-transparent text-sm py-0.5 outline-none placeholder:text-zinc-400"
         />
-        <span className="text-xs text-zinc-400 w-10">
-          {captionStatus === "saving" && "saving…"}
-          {captionStatus === "saved" && "saved"}
-        </span>
-        {confirmDelete ? (
-          <span className="text-sm space-x-3">
-            <button
-              onClick={handleDelete}
-              className="text-red-600 hover:text-red-800"
-            >
-              confirm delete
-            </button>
-            <button
-              onClick={() => setConfirmDelete(false)}
-              className="text-zinc-400 hover:text-zinc-700"
-            >
-              cancel
-            </button>
+        <div className="flex items-baseline gap-4">
+          <span className="text-xs text-zinc-400 w-10">
+            {captionStatus === "saving" && "saving…"}
+            {captionStatus === "saved" && "saved"}
           </span>
-        ) : (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="text-sm text-zinc-400 hover:text-zinc-700"
-          >
-            delete
-          </button>
-        )}
+          {confirmDelete ? (
+            <span className="text-sm space-x-3">
+              <button
+                onClick={handleDelete}
+                className="text-red-600 hover:text-red-800 inline-block p-3 -m-3"
+              >
+                confirm delete
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="text-zinc-400 hover:text-zinc-700 inline-block p-3 -m-3"
+              >
+                cancel
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="text-sm text-zinc-400 hover:text-zinc-700 inline-block p-3 -m-3"
+            >
+              delete
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
