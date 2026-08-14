@@ -51,6 +51,9 @@ docs/features/intersectionVisualization/detailview.md
 docs/features/intersectionVisualization/detailview.md
 .vscode/tasks.json
 
+# local project guidance (not shared)
+CLAUDE.md
+
 # local dev tooling / agent config
 .mcp.json
 .playwright-mcp/
