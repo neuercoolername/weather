@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { getIntersectionPage, PAGE_SIZE } from "./intersections";
+import {
+  getIntersectionPage,
+  intersectionPageHref,
+  PAGE_SIZE,
+} from "./intersections";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -40,15 +44,40 @@ describe("getIntersectionPage", () => {
     );
   });
 
-  it("orders by detectedAt desc", async () => {
+  it("orders by detectedAt desc, with id as tiebreaker", async () => {
     mockCount.mockResolvedValue(1);
     mockFindMany.mockResolvedValue(MOCK_ITEMS);
 
     await getIntersectionPage(1);
 
     expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: { detectedAt: "desc" } })
+      expect.objectContaining({
+        orderBy: [{ detectedAt: "desc" }, { id: "desc" }],
+      })
     );
+  });
+
+  it("applies no where clause when unfiltered", async () => {
+    mockCount.mockResolvedValue(1);
+    mockFindMany.mockResolvedValue(MOCK_ITEMS);
+
+    await getIntersectionPage(1);
+
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: undefined })
+    );
+    expect(mockCount).toHaveBeenCalledWith({ where: undefined });
+  });
+
+  it("filters on empty or null text for needs-text", async () => {
+    mockCount.mockResolvedValue(1);
+    mockFindMany.mockResolvedValue(MOCK_ITEMS);
+
+    await getIntersectionPage(1, "needs-text");
+
+    const where = { OR: [{ text: null }, { text: "" }] };
+    expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({ where }));
+    expect(mockCount).toHaveBeenCalledWith({ where });
   });
 
   it("returns the items from Prisma", async () => {
@@ -58,6 +87,20 @@ describe("getIntersectionPage", () => {
     const { items } = await getIntersectionPage(1);
 
     expect(items).toBe(MOCK_ITEMS);
+  });
+
+  it("passes the filter through to a later page", async () => {
+    mockCount.mockResolvedValue(PAGE_SIZE + 1);
+    mockFindMany.mockResolvedValue(MOCK_ITEMS);
+
+    await getIntersectionPage(2, "needs-text");
+
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { OR: [{ text: null }, { text: "" }] },
+        skip: PAGE_SIZE,
+      })
+    );
   });
 
   it("calculates totalPages correctly", async () => {
@@ -71,5 +114,20 @@ describe("getIntersectionPage", () => {
 
     mockCount.mockResolvedValue(0);
     expect((await getIntersectionPage(1)).totalPages).toBe(0);
+  });
+});
+
+describe("intersectionPageHref", () => {
+  it("carries only page when unfiltered", () => {
+    expect(intersectionPageHref(2)).toBe("/admin/intersections?page=2");
+  });
+
+  it("preserves the filter on both directions", () => {
+    expect(intersectionPageHref(3, "needs-text")).toBe(
+      "/admin/intersections?page=3&filter=needs-text"
+    );
+    expect(intersectionPageHref(1, "needs-text")).toBe(
+      "/admin/intersections?page=1&filter=needs-text"
+    );
   });
 });

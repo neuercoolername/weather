@@ -46,15 +46,21 @@ export async function getAdjacentIntersectionIds(
   id: number,
   detectedAt: Date
 ): Promise<{ prevId: number | null; nextId: number | null }> {
+  // Compound (detectedAt, id) cursor — a plain gt/lt on detectedAt skips over
+  // rows that share an identical timestamp with the current one.
   const [prev, next] = await Promise.all([
     prisma.intersection.findFirst({
-      where: { detectedAt: { gt: detectedAt } },
-      orderBy: { detectedAt: "asc" },
+      where: {
+        OR: [{ detectedAt: { gt: detectedAt } }, { detectedAt, id: { gt: id } }],
+      },
+      orderBy: [{ detectedAt: "asc" }, { id: "asc" }],
       select: { id: true },
     }),
     prisma.intersection.findFirst({
-      where: { detectedAt: { lt: detectedAt } },
-      orderBy: { detectedAt: "desc" },
+      where: {
+        OR: [{ detectedAt: { lt: detectedAt } }, { detectedAt, id: { lt: id } }],
+      },
+      orderBy: [{ detectedAt: "desc" }, { id: "desc" }],
       select: { id: true },
     }),
   ]);

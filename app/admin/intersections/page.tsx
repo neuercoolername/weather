@@ -42,7 +42,7 @@ export default async function IntersectionsListPage({
       </div>
 
       <IntersectionList items={items} />
-      <Pagination page={page} totalPages={totalPages} />
+      <Pagination page={page} totalPages={totalPages} filter={filter} />
     </div>
   );
 }

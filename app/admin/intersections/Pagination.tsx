@@ -1,11 +1,17 @@
 import Link from "next/link";
+import {
+  intersectionPageHref,
+  type IntersectionFilter,
+} from "@/lib/admin/intersections";
 
 export default function Pagination({
   page,
   totalPages,
+  filter,
 }: {
   page: number;
   totalPages: number;
+  filter?: IntersectionFilter;
 }) {
   if (totalPages <= 1) return null;
 
@@ -13,7 +19,7 @@ export default function Pagination({
     <div className="flex gap-6 mt-10 text-sm text-zinc-500">
       {page > 1 && (
         <Link
-          href={`/admin/intersections?page=${page - 1}`}
+          href={intersectionPageHref(page - 1, filter)}
           className="hover:text-zinc-900"
         >
           ← newer
@@ -21,7 +27,7 @@ export default function Pagination({
       )}
       {page < totalPages && (
         <Link
-          href={`/admin/intersections?page=${page + 1}`}
+          href={intersectionPageHref(page + 1, filter)}
           className="hover:text-zinc-900"
         >
           older →
