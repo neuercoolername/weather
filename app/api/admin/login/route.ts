@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
+import { redirectToPath, safeNextPath } from "@/lib/redirect";
 
 export async function POST(req: NextRequest) {
   const ip =
@@ -15,10 +16,9 @@ export async function POST(req: NextRequest) {
 
   if (password !== process.env.ADMIN_PASSWORD) {
     const next = req.nextUrl.searchParams.get("next") ?? "";
-    const loginUrl = new URL("/admin/login", req.url);
-    loginUrl.searchParams.set("error", "1");
-    if (next) loginUrl.searchParams.set("next", next);
-    return NextResponse.redirect(loginUrl, { status: 303 });
+    const params = new URLSearchParams({ error: "1" });
+    if (next) params.set("next", next);
+    return redirectToPath(`/admin/login?${params}`);
   }
 
   resetRateLimit(ip);
@@ -26,7 +26,9 @@ export async function POST(req: NextRequest) {
   session.isLoggedIn = true;
   await session.save();
 
-  const next =
-    req.nextUrl.searchParams.get("next") ?? "/admin/intersections";
-  return NextResponse.redirect(new URL(next, req.url), { status: 303 });
+  const next = safeNextPath(
+    req.nextUrl.searchParams.get("next"),
+    "/admin/intersections"
+  );
+  return redirectToPath(next);
 }

@@ -100,6 +100,7 @@ Fire-and-forget — a failed send never breaks the weather-fetch cycle.
 Reply-to address is pre-set to `trace+<id>@<domain>` for future inbound handling.
 Email includes a direct link to the admin CMS detail page (`BASE_URL/admin/intersections/<id>`).
 Requires env vars: `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM`, `BASE_URL`.
+`BASE_URL` must be an **origin only** — no path (a stray `/trace` made every emailed admin link a 404).
 
 ### Admin CMS ✅
 Single-password admin interface at `/admin/*` for editing intersection text and managing images.
@@ -107,7 +108,12 @@ Single-password admin interface at `/admin/*` for editing intersection text and 
 - Pages: `/admin/login`, `/admin/intersections` (paginated list), `/admin/intersections/[id]` (detail/edit)
 - Image storage: Supabase Storage bucket `intersection-images` (private); signed URLs generated server-side
 - Requires env vars: `ADMIN_PASSWORD`, `SESSION_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BASE_URL`
-- Key files: `middleware.ts`, `lib/session-config.ts`, `lib/session.ts`, `lib/supabase.ts`, `lib/rate-limit.ts`, `app/admin/`
+- Redirects **never** derive their origin from `req.url`: in a standalone build Next builds that origin
+  from the bind address (`0.0.0.0`), not the Host header, which sent login/logout to
+  `http://0.0.0.0:3000/admin/...` in production. Route handlers emit a relative `Location`
+  (`redirectToPath`); `proxy.ts` needs an absolute URL — Next's middleware pipeline rejects a relative
+  one — so it builds one from the forwarded/Host headers (`sameOriginUrl`).
+- Key files: `proxy.ts` (Next 16 middleware), `lib/redirect.ts`, `lib/session-config.ts`, `lib/session.ts`, `lib/supabase.ts`, `lib/rate-limit.ts`, `app/admin/`
 
 ---
 
@@ -116,6 +122,7 @@ Single-password admin interface at `/admin/*` for editing intersection text and 
 - `lib/trace.ts` — pure geometry: `computeTracePoint`, `segmentsIntersect`, `detectAndStoreIntersections`
 - `lib/weave.ts` — `computeWeaveSegments`, `buildWeavePaths` (weave rendering geometry)
 - `lib/email.ts` — Resend client, `formatDate`, `sendIntersectionEmail`
+- `lib/redirect.ts` — `redirectToPath`, `sameOriginUrl`, `safeNextPath` (host-correct auth redirects)
 - `lib/intersection-text.ts` — `formatGapDuration`, `buildIntersectionPayload`, `generateIntersectionText`
 - `app/trace/page.tsx` — server component, fetches all trace points + intersections
 - `app/trace/TraceSVG.tsx` — client component, d3-zoom orchestrator

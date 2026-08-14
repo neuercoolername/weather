@@ -37,7 +37,23 @@ describe("sendIntersectionEmail", () => {
     await sendIntersectionEmail(BASE_ARGS);
     expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining("/admin/intersections/1"),
+        text: expect.stringContaining(
+          "https://example.com/admin/intersections/1"
+        ),
+      })
+    );
+  });
+
+  it("does not double the slash when BASE_URL has a trailing one", async () => {
+    process.env.EMAIL_FROM = "trace@example.com";
+    process.env.NOTIFICATION_EMAIL = "me@example.com";
+    process.env.BASE_URL = "https://example.com/";
+    await sendIntersectionEmail(BASE_ARGS);
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          "https://example.com/admin/intersections/1"
+        ),
       })
     );
   });

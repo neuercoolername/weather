@@ -1,10 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
+import { redirectToPath } from "@/lib/redirect";
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const session = await getSession();
   session.destroy();
-  return NextResponse.redirect(new URL("/admin/login", req.url), {
-    status: 303,
-  });
+  return redirectToPath("/admin/login");
 }

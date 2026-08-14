@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { unsealData } from "iron-session";
 import { COOKIE_NAME, sessionOptions } from "@/lib/session-config";
 import type { SessionData } from "@/lib/session";
+import { sameOriginUrl } from "@/lib/redirect";
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -27,9 +28,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const loginUrl = new URL("/admin/login", req.url);
+  // Absolute URL from the Host headers, not req.url — see lib/redirect.ts.
+  // 307 preserves the method if a non-GET request was the one blocked.
+  const loginUrl = sameOriginUrl(req, "/admin/login");
   loginUrl.searchParams.set("next", pathname);
-  return NextResponse.redirect(loginUrl);
+  return NextResponse.redirect(loginUrl, 307);
 }
 
 export const config = {

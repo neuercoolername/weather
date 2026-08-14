@@ -35,6 +35,8 @@ export async function sendIntersectionEmail({
 }): Promise<void> {
   const from = process.env.EMAIL_FROM!;
   const to = process.env.NOTIFICATION_EMAIL!;
+  // BASE_URL is an origin, no path — tolerate a trailing slash.
+  const baseUrl = (process.env.BASE_URL ?? "").replace(/\/+$/, "");
   const formattedA = formatDate(dateA);
   const formattedB = formatDate(dateB);
 
@@ -45,7 +47,7 @@ export async function sendIntersectionEmail({
     "",
     "---",
     `Intersection ID: ${id}`,
-    `Respond: ${process.env.BASE_URL}/admin/intersections/${id}`,
+    `Respond: ${baseUrl}/admin/intersections/${id}`,
   ];
 
   const { error } = await getResend().emails.send({
