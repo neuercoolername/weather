@@ -19,6 +19,13 @@ async function withSignedUrls<T extends { storageKey: string }>(
   );
 }
 
+// The intersection shape the public trace renders — derived from the query below
+// (single source of truth: it follows the Prisma `select` automatically).
+export type IntersectionWithImages = Awaited<
+  ReturnType<typeof getAllIntersectionsWithImages>
+>[number];
+export type IntersectionImage = IntersectionWithImages["images"][number];
+
 export async function getAllIntersectionsWithImages() {
   const intersections = await prisma.intersection.findMany({
     select: {

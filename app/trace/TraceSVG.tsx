@@ -7,29 +7,12 @@ import TraceDots from "./TraceDots";
 import IntersectionPanel from "./IntersectionPanel";
 import TraceHeader from "./TraceHeader";
 import type { WindField } from "@/lib/wind-field";
-
-interface TracePoint {
-  id: number;
-  x: number;
-  y: number;
-  snapshot: { fetchedAt: Date };
-}
-
-interface Intersection {
-  id: number;
-  x: number;
-  y: number;
-  text: string | null;
-  tracePointIdA: number;
-  tracePointIdB: number;
-  tracePointA: { snapshot: { fetchedAt: Date } };
-  tracePointB: { snapshot: { fetchedAt: Date } };
-  images: { id: string; caption: string | null; signedUrl: string }[];
-}
+import type { TracePoint } from "@/lib/data/trace-points";
+import type { IntersectionWithImages } from "@/lib/intersections";
 
 interface Props {
   tracePoints: TracePoint[];
-  intersections: Intersection[];
+  intersections: IntersectionWithImages[];
   windField: WindField | null;
 }
 

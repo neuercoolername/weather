@@ -1,20 +1,10 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
-
-interface Image {
-  id: string;
-  caption: string | null;
-  signedUrl: string;
-}
-
-interface Intersection {
-  id: number;
-  text: string | null;
-  tracePointA: { snapshot: { fetchedAt: Date } };
-  tracePointB: { snapshot: { fetchedAt: Date } };
-  images: Image[];
-}
+import type { IntersectionWithImages, IntersectionImage } from "@/lib/intersections";
+import PanelNav from "./PanelNav";
+import IntersectionImages from "./IntersectionImages";
+import ImageLightbox from "./ImageLightbox";
 
 function formatDate(d: Date): string {
   return new Date(d).toLocaleDateString("en-GB", {
@@ -30,12 +20,12 @@ function IntersectionPanel({
   onPrev,
   onNext,
 }: {
-  intersection: Intersection;
+  intersection: IntersectionWithImages;
   onClose: () => void;
   onPrev: (() => void) | null;
   onNext: (() => void) | null;
 }) {
-  const [expandedImage, setExpandedImage] = useState<Image | null>(null);
+  const [expandedImage, setExpandedImage] = useState<IntersectionImage | null>(null);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -54,33 +44,6 @@ function IntersectionPanel({
 
   const dateLabel = `${formatDate(intersection.tracePointA.snapshot.fetchedAt)} × ${formatDate(intersection.tracePointB.snapshot.fetchedAt)}`;
 
-  const navButtons = (
-    <>
-      <button
-        onClick={onPrev ?? undefined}
-        disabled={onPrev === null}
-        className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900 disabled:opacity-20"
-        title="previous (←)"
-      >
-        ←
-      </button>
-      <button
-        onClick={onNext ?? undefined}
-        disabled={onNext === null}
-        className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900 disabled:opacity-20"
-        title="next (→)"
-      >
-        →
-      </button>
-      <button
-        onClick={onClose}
-        className="w-12 h-12 flex items-center justify-center text-xl hover:text-zinc-900"
-      >
-        ✕
-      </button>
-    </>
-  );
-
   return (
     <>
       <div
@@ -92,7 +55,7 @@ function IntersectionPanel({
             <p className="text-sm text-zinc-500">{dateLabel}</p>
             {/* Desktop: nav sits inline with the date label */}
             <div className="hidden md:flex items-center gap-1 text-zinc-400">
-              {navButtons}
+              <PanelNav onPrev={onPrev} onNext={onNext} onClose={onClose} />
             </div>
           </div>
 
@@ -101,47 +64,18 @@ function IntersectionPanel({
           )}
 
           {intersection.images.length > 0 && (
-            <div className="space-y-4">
-              {intersection.images.map((img) => (
-                <figure key={img.id} className="space-y-1">
-                  <img
-                    src={img.signedUrl}
-                    alt={img.caption ?? ""}
-                    className="w-full max-h-[60vh] object-contain cursor-pointer"
-                    onClick={() => setExpandedImage(img)}
-                  />
-                  {img.caption && (
-                    <figcaption className="text-xs text-zinc-400">
-                      {img.caption}
-                    </figcaption>
-                  )}
-                </figure>
-              ))}
-            </div>
+            <IntersectionImages images={intersection.images} onExpand={setExpandedImage} />
           )}
         </div>
 
         {/* Mobile: nav lives in a bottom bar, within thumb's reach */}
         <div className="shrink-0 border-t border-zinc-200 p-2 flex items-center justify-center gap-6 text-zinc-400 md:hidden">
-          {navButtons}
+          <PanelNav onPrev={onPrev} onNext={onNext} onClose={onClose} />
         </div>
       </div>
 
       {expandedImage && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center"
-          onClick={() => setExpandedImage(null)}
-        >
-          <img
-            src={expandedImage.signedUrl}
-            alt={expandedImage.caption ?? ""}
-            className="max-h-screen max-w-full object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-          {expandedImage.caption && (
-            <p className="mt-3 text-sm text-zinc-400">{expandedImage.caption}</p>
-          )}
-        </div>
+        <ImageLightbox image={expandedImage} onClose={() => setExpandedImage(null)} />
       )}
     </>
   );
