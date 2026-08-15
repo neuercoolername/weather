@@ -13,6 +13,10 @@ The data is both subject and medium — displayed as a minimal public web page.
 - **Weather data**: Open-Meteo API
 - **Testing**: Vitest
 - **iOS**: Expo Go (GPS tracking only)
+- **Typography**: Literata (reading text, the document default) + IBM Plex Mono (technical meta —
+  timestamps, ids), both via `next/font/google`; the flow-field header uses Archivo Black as a stencil.
+  Wired in `app/layout.tsx` + `app/globals.css` (body font references the next/font `--font-literata`
+  var directly — `@theme inline` tokens aren't emitted as `:root` vars).
 
 ---
 

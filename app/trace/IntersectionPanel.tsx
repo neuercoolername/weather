@@ -52,7 +52,7 @@ function IntersectionPanel({
       >
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-zinc-500">{dateLabel}</p>
+            <p className="text-sm text-zinc-500 font-mono tabular-nums">{dateLabel}</p>
             {/* Desktop: nav sits inline with the date label */}
             <div className="hidden md:flex items-center gap-1 text-zinc-400">
               <PanelNav onPrev={onPrev} onNext={onNext} onClose={onClose} />

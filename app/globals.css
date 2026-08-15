@@ -1,4 +1,5 @@
 @import "tailwindcss";
+/* Literata (reading) + IBM Plex Mono (technical meta) */
 
 :root {
   --background: #ffffff;
@@ -9,12 +10,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-plex-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* next/font sets --font-literata on <body>; reference it directly since @theme
+     inline tokens aren't emitted as :root variables. */
+  font-family: var(--font-literata), Georgia, "Times New Roman", serif;
 }
