@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 interface Image {
   id: string;
@@ -24,7 +24,7 @@ function formatDate(d: Date): string {
   });
 }
 
-export default function IntersectionPanel({
+function IntersectionPanel({
   intersection,
   onClose,
   onPrev,
@@ -146,3 +146,5 @@ export default function IntersectionPanel({
     </>
   );
 }
+
+export default memo(IntersectionPanel);

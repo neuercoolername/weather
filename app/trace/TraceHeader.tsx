@@ -1,3 +1,6 @@
+"use client";
+
+import { memo } from "react";
 import type { WindField } from "@/lib/wind-field";
 import FlowFieldHeadline from "./FlowFieldHeadline";
 
@@ -19,7 +22,7 @@ function formatCompactDate(d: Date): string {
   return `${dt.getDate()}/${dt.getMonth() + 1}/${yy}`;
 }
 
-export default function TraceHeader({
+function TraceHeader({
   windField,
   hoveredIntersection,
   activeIntersection,
@@ -40,3 +43,5 @@ export default function TraceHeader({
     </div>
   );
 }
+
+export default memo(TraceHeader);

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { zoom as d3zoom, zoomIdentity, ZoomTransform, ZoomBehavior } from "d3-zoom";
-import { select } from "d3-selection";
-import IntersectionDot from "./IntersectionDot";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { zoomIdentity, ZoomTransform } from "d3-zoom";
+import { createTraceCamera, type TraceCamera } from "./traceCamera";
+import TraceDots from "./TraceDots";
 import IntersectionPanel from "./IntersectionPanel";
 import TraceHeader from "./TraceHeader";
 import type { WindField } from "@/lib/wind-field";
@@ -33,107 +33,85 @@ interface Props {
   windField: WindField | null;
 }
 
-const PANEL_WIDTH_FRACTION = 0.33; // desktop: right-side panel width
+const PANEL_WIDTH_FRACTION = 0.33;
 const MOBILE_BREAKPOINT = 768; // matches Tailwind's `md`
-const PAN_DURATION = 400;
+const PADDING = 60;
 
 export default function TraceSVG({ tracePoints, intersections, windField }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown>>(null);
+  const cameraRef = useRef<TraceCamera | null>(null);
   const transformRef = useRef<ZoomTransform>(zoomIdentity);
   const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
 
-  // Wire d3-zoom
+  // Camera (d3-zoom) — one external-system instance for the component's life.
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
-    const zoom = d3zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 20])
-      .on("zoom", (e) => {
-        transformRef.current = e.transform;
-        setTransform(e.transform);
-      });
-    zoomRef.current = zoom;
-    select(svg).call(zoom);
+    const camera = createTraceCamera(svg, (t) => {
+      transformRef.current = t;
+      setTransform(t);
+    });
+    cameraRef.current = camera;
+    return () => {
+      camera.destroy();
+      cameraRef.current = null;
+    };
   }, []);
 
-  // Initial fit
+  // Fit the trace to the viewport (once tracePoints are available).
   useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg || !zoomRef.current || tracePoints.length === 0) return;
-    const { width, height } = svg.getBoundingClientRect();
-    if (width === 0 || height === 0) return;
-    const PADDING = 60;
-    const xs = tracePoints.map((p) => p.x);
-    const ys = tracePoints.map((p) => -p.y);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
-    const dataW = maxX - minX || 1;
-    const dataH = maxY - minY || 1;
-    const k = Math.min(
-      (width - PADDING * 2) / dataW,
-      (height - PADDING * 2) / dataH
-    );
-    const tx = (width - dataW * k) / 2 - minX * k;
-    const ty = (height - dataH * k) / 2 - minY * k;
-    select(svg).call(
-      zoomRef.current.transform,
-      zoomIdentity.translate(tx, ty).scale(k)
-    );
-  }, []); // tracePoints are stable (server-rendered)
+    cameraRef.current?.fit(tracePoints, PADDING);
+  }, [tracePoints]);
 
-  // Animate pan to center the selected intersection in the visible (non-panel) area
+  // Pan the selected intersection to the centre of the visible (non-panel) area.
   useEffect(() => {
     if (activeId === null) return;
-    const svg = svgRef.current;
-    const zoom = zoomRef.current;
-    if (!svg || !zoom) return;
+    const camera = cameraRef.current;
     const ix = intersections.find((i) => i.id === activeId);
-    if (!ix) return;
+    if (!camera || !ix) return;
 
-    // On mobile the detail view covers the full screen, so there's no
-    // partial area to center within — just center the viewport itself,
-    // so the dot lands centered once the view is dismissed.
+    // On mobile the detail view covers the full screen, so centre the whole viewport.
     const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
     const panelWidth = isMobile ? 0 : window.innerWidth * PANEL_WIDTH_FRACTION;
     const targetScreenX = (window.innerWidth - panelWidth) / 2;
     const targetScreenY = window.innerHeight / 2;
     const from = transformRef.current;
     const toTx = targetScreenX - ix.x * from.k;
-    const toTy = targetScreenY - (-ix.y) * from.k;
+    const toTy = targetScreenY - -ix.y * from.k;
+    camera.animateTo(zoomIdentity.translate(toTx, toTy).scale(from.k));
+  }, [activeId, intersections]);
 
-    const start = performance.now();
-    function step(now: number) {
-      const t = Math.min((now - start) / PAN_DURATION, 1);
-      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      select(svg!).call(
-        zoom!.transform,
-        zoomIdentity
-          .translate(from.x + (toTx - from.x) * e, from.y + (toTy - from.y) * e)
-          .scale(from.k)
-      );
-      if (t < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  }, [activeId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Stable handlers so the memoized header/panel/dots don't re-render every zoom frame.
+  const handleActivate = useCallback(
+    (id: number) => setActiveId((prev) => (prev === id ? null : id)),
+    []
+  );
+  const handleHover = useCallback((id: number | null) => setHoveredId(id), []);
+  const handleClose = useCallback(() => setActiveId(null), []);
 
   const textIntersections = intersections.filter((ix) => ix.text?.trim());
-
   const sorted = [...textIntersections].sort((a, b) => a.id - b.id);
   const activeIndex = activeId !== null ? sorted.findIndex((ix) => ix.id === activeId) : -1;
   const prevId = activeIndex > 0 ? sorted[activeIndex - 1].id : null;
-  const nextId = activeIndex !== -1 && activeIndex < sorted.length - 1 ? sorted[activeIndex + 1].id : null;
+  const nextId =
+    activeIndex !== -1 && activeIndex < sorted.length - 1 ? sorted[activeIndex + 1].id : null;
+
+  const handlePrev = useCallback(() => {
+    if (prevId !== null) setActiveId(prevId);
+  }, [prevId]);
+  const handleNext = useCallback(() => {
+    if (nextId !== null) setActiveId(nextId);
+  }, [nextId]);
 
   const activeIntersection = intersections.find((ix) => ix.id === activeId) ?? null;
   const hoveredIntersection = intersections.find((ix) => ix.id === hoveredId) ?? null;
 
-  const tracePath = tracePoints.length < 2 ? "" : tracePoints
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x},${-p.y}`)
-    .join(" ");
+  const tracePath =
+    tracePoints.length < 2
+      ? ""
+      : tracePoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x},${-p.y}`).join(" ");
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -143,11 +121,7 @@ export default function TraceSVG({ tracePoints, intersections, windField }: Prop
         activeIntersection={activeIntersection}
       />
 
-      <svg
-        ref={svgRef}
-        className="w-full h-full"
-        onClick={() => setActiveId(null)}
-      >
+      <svg ref={svgRef} className="w-full h-full" onClick={handleClose}>
         {/* Content layer — scales and pans with zoom */}
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           <path
@@ -160,36 +134,23 @@ export default function TraceSVG({ tracePoints, intersections, windField }: Prop
           />
         </g>
 
-        {/* UI layer — dots at fixed screen-pixel size */}
-        <g>
-          {textIntersections.map((ix) => {
-            const sx = ix.x * transform.k + transform.x;
-            const sy = (-ix.y) * transform.k + transform.y;
-            return (
-              <IntersectionDot
-                key={ix.id}
-                sx={sx}
-                sy={sy}
-                isActive={activeId === ix.id}
-                isHovered={hoveredId === ix.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveId(activeId === ix.id ? null : ix.id);
-                }}
-                onMouseEnter={() => setHoveredId(ix.id)}
-                onMouseLeave={() => setHoveredId(null)}
-              />
-            );
-          })}
-        </g>
+        {/* UI layer — interactive dots at fixed screen-pixel size */}
+        <TraceDots
+          points={textIntersections}
+          transform={transform}
+          activeId={activeId}
+          hoveredId={hoveredId}
+          onActivate={handleActivate}
+          onHover={handleHover}
+        />
       </svg>
 
       {activeIntersection && (
         <IntersectionPanel
           intersection={activeIntersection}
-          onClose={() => setActiveId(null)}
-          onPrev={prevId !== null ? () => setActiveId(prevId) : null}
-          onNext={nextId !== null ? () => setActiveId(nextId) : null}
+          onClose={handleClose}
+          onPrev={prevId !== null ? handlePrev : null}
+          onNext={nextId !== null ? handleNext : null}
         />
       )}
     </div>
