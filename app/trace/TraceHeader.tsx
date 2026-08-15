@@ -1,4 +1,5 @@
-import { formatWindLabel } from "@/lib/compass";
+import type { WindField } from "@/lib/wind-field";
+import FlowFieldHeadline from "./FlowFieldHeadline";
 
 interface IntersectionSummary {
   tracePointA: { snapshot: { fetchedAt: Date } };
@@ -6,38 +7,36 @@ interface IntersectionSummary {
 }
 
 interface Props {
-  latestWind: { speedKph: number; directionDeg: number } | null;
+  windField: WindField | null;
   hoveredIntersection: IntersectionSummary | null;
   activeIntersection: IntersectionSummary | null;
 }
 
-function formatDate(d: Date): string {
-  return new Date(d).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+// Compact date: D/M/YY, no leading zeros, 2-digit year (e.g. 4/4/26).
+function formatCompactDate(d: Date): string {
+  const dt = new Date(d);
+  const yy = String(dt.getFullYear() % 100).padStart(2, "0");
+  return `${dt.getDate()}/${dt.getMonth() + 1}/${yy}`;
 }
 
-export default function TraceHeader({ latestWind, hoveredIntersection, activeIntersection }: Props) {
+export default function TraceHeader({
+  windField,
+  hoveredIntersection,
+  activeIntersection,
+}: Props) {
   const displayIntersection = hoveredIntersection ?? activeIntersection;
 
-  let content: string | null = null;
-  if (displayIntersection) {
-    const a = formatDate(displayIntersection.tracePointA.snapshot.fetchedAt);
-    const b = formatDate(displayIntersection.tracePointB.snapshot.fetchedAt);
-    content = `${a} × ${b}`;
-  } else if (latestWind) {
-    content = formatWindLabel(latestWind.directionDeg, latestWind.speedKph);
-  }
-
-  if (!content) return null;
+  // The wind reading drives the field's *motion*; the text is "Trace" by default,
+  // or the crossing's two dates (compact) when an intersection is shown.
+  const text = displayIntersection
+    ? `${formatCompactDate(displayIntersection.tracePointA.snapshot.fetchedAt)} × ${formatCompactDate(
+        displayIntersection.tracePointB.snapshot.fetchedAt
+      )}`
+    : "Trace";
 
   return (
     <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none px-6 py-4">
-      <p className={"text-2xl font-light tracking-wide"}>
-        {content}
-      </p>
+      <FlowFieldHeadline text={text} field={windField} />
     </div>
   );
 }

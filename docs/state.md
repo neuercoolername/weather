@@ -115,6 +115,23 @@ Single-password admin interface at `/admin/*` for editing intersection text and 
   one — so it builds one from the forwarded/Host headers (`sameOriginUrl`).
 - Key files: `proxy.ts` (Next 16 middleware), `lib/redirect.ts`, `lib/session-config.ts`, `lib/session.ts`, `lib/supabase.ts`, `lib/rate-limit.ts`, `app/admin/`
 
+### Flow-field headline ✅
+The `/` header text is rendered as an animated wind **quiver** (short direction strokes, dense inside
+the letterforms, faint outside) instead of plain type. The turbulence is a synthetic field whose
+statistics match the real wind reading: mean flow from direction + speed, turbulence intensity from the
+gust factor (`TI = (G−1)/3`), a slow direction meander from the 24h circular variance, a gust "pulse",
+and length variance that ramps with wind speed (stormy feel). The wind reading drives *motion only* —
+the text is the word **"Trace"** by default, or the crossing's two dates in compact `D/M/YY × D/M/YY`
+form when an intersection is hovered/active.
+- Always animating; pauses when the tab is hidden; single static frame under `prefers-reduced-motion`.
+- Engine is pure + parameterised (`FlowFieldParams`, defaults = the tuned values) so the "feel" stays
+  tunable; the canvas component is a thin wrapper. Stencil mask uses Archivo Black (`next/font`).
+- Server computes a compact `windField = { dirDeg, meanSpeed, gustFactor, TI, meanderDeg }` from the
+  last 24 hourly snapshots (`wind_gusts_10m` + `wind_direction_10m` from `rawJson.current`) — no
+  rawJson crosses to the client.
+- Key files: `lib/flow-field.ts`, `lib/wind-field.ts`, `app/trace/FlowFieldHeadline.tsx`,
+  `app/trace/TraceHeader.tsx`, `app/page.tsx`. (`lib/compass.ts` `formatWindLabel` is now unused.)
+
 ---
 
 ## Key files
@@ -126,6 +143,10 @@ Single-password admin interface at `/admin/*` for editing intersection text and 
 - `lib/intersection-text.ts` — `formatGapDuration`, `buildIntersectionPayload`, `generateIntersectionText`
 - `app/trace/page.tsx` — server component, fetches all trace points + intersections
 - `app/trace/TraceSVG.tsx` — client component, d3-zoom orchestrator
+- `lib/flow-field.ts` — pure parameterised wind flow-field engine (Perlin/fBm, curl, Reynolds decomposition, length ramp)
+- `lib/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats)
+- `app/trace/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
+- `app/trace/TraceHeader.tsx` — chooses header text ("Trace" | compact dates), mounts the flow-field headline
 - `app/trace/IntersectionDot.tsx` — SVG dot + hit area, fixed screen-pixel size
 - `app/trace/IntersectionLabel.tsx` — HTML overlay label, anchored to dot
 - `app/api/location/route.ts` — POST endpoint receiving GPS coordinates from iOS app

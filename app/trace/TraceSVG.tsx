@@ -6,6 +6,7 @@ import { select } from "d3-selection";
 import IntersectionDot from "./IntersectionDot";
 import IntersectionPanel from "./IntersectionPanel";
 import TraceHeader from "./TraceHeader";
+import type { WindField } from "@/lib/wind-field";
 
 interface TracePoint {
   id: number;
@@ -29,14 +30,14 @@ interface Intersection {
 interface Props {
   tracePoints: TracePoint[];
   intersections: Intersection[];
-  latestWind: { speedKph: number; directionDeg: number } | null;
+  windField: WindField | null;
 }
 
 const PANEL_WIDTH_FRACTION = 0.33; // desktop: right-side panel width
 const MOBILE_BREAKPOINT = 768; // matches Tailwind's `md`
 const PAN_DURATION = 400;
 
-export default function TraceSVG({ tracePoints, intersections, latestWind }: Props) {
+export default function TraceSVG({ tracePoints, intersections, windField }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown>>(null);
   const transformRef = useRef<ZoomTransform>(zoomIdentity);
@@ -137,7 +138,7 @@ export default function TraceSVG({ tracePoints, intersections, latestWind }: Pro
   return (
     <div className="relative w-full h-screen overflow-hidden">
       <TraceHeader
-        latestWind={latestWind}
+        windField={windField}
         hoveredIntersection={hoveredIntersection}
         activeIntersection={activeIntersection}
       />
