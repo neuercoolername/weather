@@ -3,7 +3,7 @@ import { getSupabase, BUCKET, SIGNED_URL_EXPIRY } from "@/lib/supabase";
 
 const IMAGE_SELECT = {
   orderBy: { createdAt: "asc" as const },
-  select: { id: true, storageKey: true, caption: true },
+  select: { id: true, storageKey: true },
 };
 
 async function withSignedUrls<T extends { storageKey: string }>(

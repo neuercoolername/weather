@@ -60,7 +60,6 @@ model IntersectionImage {
   intersectionId Int
   intersection   Intersection @relation(fields: [intersectionId], references: [id], onDelete: Cascade)
   storageKey     String
-  caption        String?
   createdAt      DateTime     @default(now())
 
   @@index([intersectionId])

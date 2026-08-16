@@ -15,11 +15,10 @@ export default function ImageLightbox({
     >
       <img
         src={image.signedUrl}
-        alt={image.caption ?? ""}
+        alt=""
         className="max-h-screen max-w-full object-contain"
         onClick={(e) => e.stopPropagation()}
       />
-      {image.caption && <p className="mt-3 text-sm text-zinc-400">{image.caption}</p>}
     </div>
   );
 }

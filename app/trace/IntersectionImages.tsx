@@ -11,17 +11,13 @@ export default function IntersectionImages({
   return (
     <div className="space-y-4">
       {images.map((img) => (
-        <figure key={img.id} className="space-y-1">
-          <img
-            src={img.signedUrl}
-            alt={img.caption ?? ""}
-            className="w-full max-h-[60vh] object-contain cursor-pointer"
-            onClick={() => onExpand(img)}
-          />
-          {img.caption && (
-            <figcaption className="text-xs text-zinc-400">{img.caption}</figcaption>
-          )}
-        </figure>
+        <img
+          key={img.id}
+          src={img.signedUrl}
+          alt=""
+          className="w-full max-h-[60vh] object-contain cursor-pointer"
+          onClick={() => onExpand(img)}
+        />
       ))}
     </div>
   );

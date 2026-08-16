@@ -50,13 +50,10 @@ export async function POST(
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 
-  const caption = formData.get("caption");
   const image = await prisma.intersectionImage.create({
     data: {
       intersectionId: Number(id),
       storageKey,
-      caption:
-        typeof caption === "string" && caption.trim() ? caption.trim() : null,
     },
   });
 

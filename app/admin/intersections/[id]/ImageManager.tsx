@@ -4,7 +4,6 @@ import ImageUploadForm from "./ImageUploadForm";
 interface ImageRow {
   id: string;
   storageKey: string;
-  caption: string | null;
   signedUrl: string;
 }
 

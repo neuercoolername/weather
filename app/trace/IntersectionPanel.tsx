@@ -60,7 +60,9 @@ function IntersectionPanel({
           </div>
 
           {intersection.text && (
-            <p className="text-sm leading-relaxed">{intersection.text}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-line">
+              {intersection.text}
+            </p>
           )}
 
           {intersection.images.length > 0 && (

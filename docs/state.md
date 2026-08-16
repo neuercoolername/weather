@@ -53,7 +53,8 @@ Records when the wind trace crosses itself.
 
 ### `IntersectionImage`
 Image attached to an intersection via the admin CMS.
-- Fields: `id` (cuid), `intersectionId` (FK), `storageKey` (path in Supabase Storage bucket `intersection-images`), `caption` (nullable), `createdAt`
+- Fields: `id` (cuid), `intersectionId` (FK), `storageKey` (path in Supabase Storage bucket `intersection-images`), `createdAt`
+- No caption — images stand on their own (the field was dropped in `20260816104623_drop_image_caption`, unused)
 - Blobs stored in Supabase Storage (private bucket); access via server-generated signed URLs (1h)
 
 ### `IntersectionText`
@@ -72,6 +73,8 @@ Hourly cron fetches Open-Meteo data, stores snapshot, generates haiku.
 Computes and stores trace points on each new snapshot.
 Detects intersections after each new segment.
 Public page at `/trace` renders full SVG path with interactive intersection dots.
+Intersection text preserves the newlines it was written with (`whitespace-pre-line` on the
+panel's `<p>`); the text stays a flat string, no paragraph parsing.
 Authenticated POST to `/api/intersections/[id]` to add writing.
 
 ### Wind trace UI rebuild ✅
@@ -157,7 +160,7 @@ form when an intersection is hovered/active.
 - `app/api/admin/login/route.ts`, `app/api/admin/logout/route.ts` — admin auth
 - `app/api/admin/intersections/[id]/route.ts` — PATCH intersection text
 - `app/api/admin/intersections/[id]/images/route.ts` — POST image upload
-- `app/api/admin/intersections/[id]/images/[imageId]/route.ts` — PATCH caption, DELETE image
+- `app/api/admin/intersections/[id]/images/[imageId]/route.ts` — DELETE image
 - `scripts/backfill-trace.ts` — one-time backfill for pre-existing snapshots
 - `scripts/reset-trace.ts` — deletes all trace points and intersections from DB
 - `docs/backlog.md` — project backlog
