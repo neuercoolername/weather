@@ -13,7 +13,7 @@ self-crossings is added by hand through the admin CMS.
 - **Framework**: Next.js (App Router)
 - **Database**: PostgreSQL via Prisma
 - **Weather data**: Open-Meteo API
-- **Testing**: Vitest
+- **Testing**: Vitest (unit only, fully mocked — no DB or network)
 - **iOS**: Expo Go (GPS tracking only)
 - **Typography**: Literata (reading text, the document default) + IBM Plex Mono (technical meta —
   timestamps, ids), both via `next/font/google`; the flow-field header uses Archivo Black as a stencil.
@@ -185,6 +185,35 @@ Leftovers not yet cleaned up: `@anthropic-ai/sdk` is still a dependency with no 
 - `scripts/backfill-trace.ts` — one-time backfill for pre-existing snapshots
 - `scripts/reset-trace.ts` — deletes all trace points and intersections from DB
 - `docs/backlog.md` — project backlog
+
+---
+
+## CI/CD
+
+`.github/workflows/deploy.yml` runs on every push to `main` and on every pull request.
+
+**`verify`** — `npm ci` → `prisma generate` → `npm run typecheck` → `npm run lint` → `npm test`.
+Needs no secrets and no services: the whole suite mocks Prisma, `fetch`, and `resend`. The explicit
+`prisma generate` is belt-and-braces — `@prisma/client`'s postinstall already generates the client on
+`npm ci` — but it keeps the typecheck honest if that postinstall is ever skipped.
+
+**`build-and-deploy`** — gated on `verify` and restricted to pushes to `main`, so a red test, type
+error, or lint error stops the pipeline before anything is built or deployed. Builds and pushes the
+image to GHCR, runs `prisma migrate deploy`, then pulls and restarts the container over a
+cloudflared SSH tunnel.
+
+Limits worth knowing:
+- Lint failures gate on **errors only**. Three `@next/next/no-img-element` warnings are outstanding
+  (`app/trace/ImageLightbox.tsx`, `app/trace/IntersectionImages.tsx`,
+  `app/admin/intersections/[id]/ImageItem.tsx`); `--max-warnings 0` is off until those are converted.
+- `verify` does not run `npm run build` — the Docker build does, so a build break still fails the
+  pipeline, but only after `verify` passes.
+- The image is tagged `:latest` only, so there is no rollback target and the server's `pull` is not
+  pinned to the image the run just built.
+- Migrations are applied *after* the image is pushed, and never against a non-prod database.
+
+Other workflows: `backup.yml` (nightly `pg_dump` to an artifact, 90-day retention),
+`baseline.yml` (one-shot `migrate resolve`, manual dispatch).
 
 ---
 

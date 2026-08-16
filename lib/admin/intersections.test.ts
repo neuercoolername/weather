@@ -22,7 +22,9 @@ import { prisma } from "@/lib/prisma";
 const mockCount = vi.mocked(prisma.intersection.count);
 const mockFindMany = vi.mocked(prisma.intersection.findMany);
 
-const MOCK_ITEMS = [{ id: 1 }, { id: 2 }] as any;
+const MOCK_ITEMS = [{ id: 1 }, { id: 2 }] as unknown as Awaited<
+  ReturnType<typeof prisma.intersection.findMany>
+>;
 
 const NEEDS_CONTENT_WHERE = {
   AND: [{ OR: [{ text: null }, { text: "" }] }, { images: { none: {} } }],
