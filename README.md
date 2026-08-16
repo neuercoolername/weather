@@ -1,22 +1,53 @@
 # weather
 
-A personal weather display. An iOS app posts my GPS coordinates to this server; it fetches current conditions from Open-Meteo, asks Claude to write a haiku about them, and shows it on a minimal webpage. The favicon updates to match the weather. Each observation also extends a wind trace — a cumulative path drawn from wind direction and speed. Where the path crosses itself, two moments in time are linked.
+A personal weather display. An iOS app posts my GPS coordinates to this server; it fetches current conditions from Open-Meteo every hour and uses the wind to extend a cumulative trace — a single line displaced, observation by observation, by wind direction and speed. Where that line crosses itself, two moments in time are linked. Those crossings are the subject: each one is a place where I can write something and attach photographs.
 
 ## how it works
 
-1. **[iOS app](https://github.com/neuercoolername/ios-gps-tracker) → `POST /api/location`** — sends `{ lat, lon }`. Location saved, weather fetch kicks off in the background.
-2. **Open-Meteo** — free weather API, no key needed. Returns temperature, precipitation, wind, cloud cover, WMO weather code, and day/night flag.
-3. **Claude** (`claude-haiku-4-5-20251001`) — writes a 5-7-5 haiku from the raw weather JSON, incorporating literal field values.
-4. **Hourly cron** — re-fetches weather for the most recent location every hour at :00, keeping the haiku current through the day.
-5. **Wind trace** — each observation appends a point to the trace by displacing from the last position by wind direction (degrees) and wind speed (km/h). Stored in `TracePoint`. Intersections between the new segment and all prior segments are detected and stored in `Intersection`.
-6. **`/trace` page** — displays the full accumulated path as a line drawing. Intersection points are marked as dots; clicking a dot reveals the two dates that crossed and any text written about them. The view supports zoom and pan.
-7. **Page** — shows the latest haiku. The favicon is a weather emoji (☀️ 🌤️ ☁️ 🌫️ 🌧️ 🌨️ ⛈️) picked from the WMO code and time of day.
+1. **[iOS app](https://github.com/neuercoolername/ios-gps-tracker) → `POST /api/location`** — sends `{ lat, lon }` with a `Bearer $API_KEY` header. The location is saved and a weather fetch kicks off in the background. There's a web fallback at `/admin/location` for setting the position by hand.
+2. **Open-Meteo** — free weather API, no key needed. Requests temperature, apparent temperature, humidity, precipitation, weather code, cloud cover, wind speed / direction / gusts, and a day/night flag. The full response is kept as `rawJson` on the snapshot.
+3. **Hourly cron** — `instrumentation.ts` starts a node-cron schedule that re-fetches weather for the most recent location every hour at :00.
+4. **Wind trace** — each observation appends a point by displacing from the last position by wind direction (degrees) and wind speed (km/h). Stored as `TracePoint`; the origin is `(0, 0)` and the units are km/h, not geographic. The new segment is then tested against every prior segment, and any crossing is stored as an `Intersection`.
+5. **Email** — a new intersection sends a plain-text notification via Resend with a direct link to that intersection's admin page. Fire-and-forget: a failed send never breaks the weather cycle.
+6. **Writing** — the text and images on an intersection are written by hand in the admin CMS at `/admin/intersections`. Only intersections that have text get a dot on the public trace; the rest stay part of the line.
+7. **`/`** — the whole accumulated path as one SVG line, with zoom and pan. Intersection dots hold a fixed screen size regardless of zoom; clicking one pans it to centre and opens a panel with the two dates, the writing, and any images (full-screen on mobile). The header is not type but an animated wind field — a quiver of short strokes whose statistics come from the last 24 hours of real readings. The favicon is a weather emoji (☀️ 🌤️ ☁️ 🌫️ 🌧️ 🌨️ ⛈️) picked from the WMO code and time of day.
 
 ## stack
 
-- Next.js (App Router) — page + API route + cron via instrumentation hook
-- PostgreSQL + Prisma — locations, weather snapshots, haikus, trace points, intersections
-- d3-zoom + d3-selection — zoom/pan and fixed-pixel SVG overlay for the trace page
+- Next.js 16 (App Router) — page + API routes + cron via the instrumentation hook
+- PostgreSQL + Prisma — locations, weather snapshots, trace points, intersections, images
+- d3-zoom + d3-selection — zoom/pan and the fixed-pixel SVG overlay
+- Canvas — the flow-field header
+- iron-session — single-password admin auth, enforced in `proxy.ts`
+- Supabase Storage — intersection images in a private bucket, served via signed URLs
+- Resend — intersection notification email
 - Open-Meteo — weather data
-- Anthropic Claude — haiku generation
-- Docker — deployment
+- Docker + GitHub Container Registry — deployment
+
+## running it
+
+Copy `.env.example` to `.env` and fill it in:
+
+| | |
+|---|---|
+| `DATABASE_URL`, `DIRECT_URL` | Postgres — pooled connection and the direct one used for migrations |
+| `API_KEY` | shared secret the iOS app sends as `Bearer` |
+| `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM` | intersection notification email |
+| `BASE_URL` | origin only — **no path, no trailing slash**, or every emailed admin link 404s |
+| `ADMIN_PASSWORD`, `SESSION_SECRET` | admin CMS login (session secret must be 32+ chars) |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | image storage; server-only, never exposed to the client |
+
+```
+npm run dev      # local server
+npm test         # vitest
+npm run build    # production build
+```
+
+Schema changes go through `npx prisma migrate dev --name <description>`, and the generated SQL is committed alongside the code. `prisma db push` is not used on this project.
+
+**Deploy** — pushing to `main` runs `.github/workflows/deploy.yml`: it builds the Docker image and pushes it to `ghcr.io/neuercoolername/weather:latest`, applies `prisma migrate deploy`, then pulls and restarts the container on the server over a cloudflared SSH tunnel. A separate workflow takes a daily `pg_dump` backup.
+
+### scripts
+
+- `npm run backfill:trace` — computes trace points for snapshots that predate the trace
+- `npm run reset-trace` — deletes all trace points and intersections
