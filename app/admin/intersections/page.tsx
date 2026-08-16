@@ -1,26 +1,27 @@
 import Link from "next/link";
-import { getIntersectionPage, getIntersectionStats } from "@/lib/admin/intersections";
+import {
+  getIntersectionPage,
+  getIntersectionStats,
+  parseIntersectionFilter,
+  toSearchParams,
+} from "@/lib/admin/intersections";
 import AdminNav from "@/app/admin/AdminNav";
 import IntersectionList from "./IntersectionList";
 import Pagination from "./Pagination";
 
-export const dynamic = "force-dynamic";
+export default async function IntersectionsListPage(
+  props: PageProps<"/admin/intersections">
+) {
+  const params = toSearchParams(await props.searchParams);
+  const page = Math.max(1, Number(params.get("page")) || 1);
+  const filter = parseIntersectionFilter(params.get("filter"));
 
-export default async function IntersectionsListPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string; filter?: string }>;
-}) {
-  const { page: pageParam, filter: filterParam } = await searchParams;
-  const page = Math.max(1, Number(pageParam) || 1);
-  const filter = filterParam === "needs-text" ? "needs-text" as const : undefined;
-
-  const [{ items, totalPages }, { total, needsText }] = await Promise.all([
+  const [{ items, totalPages }, { total, needsContent }] = await Promise.all([
     getIntersectionPage(page, filter),
     getIntersectionStats(),
   ]);
 
-  const pct = total === 0 ? 0 : Math.round((needsText / total) * 100);
+  const pct = total === 0 ? 0 : Math.round((needsContent / total) * 100);
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-12">
@@ -28,21 +29,21 @@ export default async function IntersectionsListPage({
 
       <div className="flex items-center justify-between mb-6 text-xs text-zinc-400">
         <span>
-          {needsText} of {total} need text ({pct}%)
+          {needsContent} of {total} need text or image ({pct}%)
         </span>
-        {filter === "needs-text" ? (
+        {filter === "needs-content" ? (
           <Link href="/admin/intersections" className="underline hover:text-zinc-900">
             show all
           </Link>
         ) : (
-          <Link href="/admin/intersections?filter=needs-text" className="underline hover:text-zinc-900">
-            needs text
+          <Link href="/admin/intersections?filter=needs-content" className="underline hover:text-zinc-900">
+            needs content
           </Link>
         )}
       </div>
 
       <IntersectionList items={items} />
-      <Pagination page={page} totalPages={totalPages} filter={filter} />
+      <Pagination page={page} totalPages={totalPages} query={params.toString()} />
     </div>
   );
 }

@@ -108,9 +108,12 @@ Requires env vars: `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM`, `BASE_U
 ### Admin CMS ✅
 Single-password admin interface at `/admin/*` for editing intersection text and managing images.
 - Auth: `iron-session` cookie (`ADMIN_PASSWORD`, `SESSION_SECRET`); in-memory brute-force protection (5 attempts/IP/15min)
-- Pages: `/admin/login`, `/admin/intersections` (paginated list, `?filter=needs-text` preserved across
-  pages), `/admin/intersections/[id]` (detail/edit, prev/next), `/admin/location` (web fallback for
-  setting the current location without the iOS app)
+- Pages: `/admin/login`, `/admin/intersections` (paginated list, `?filter=needs-content` — no text *and*
+  no images — preserved across pages), `/admin/intersections/[id]` (detail/edit, prev/next),
+  `/admin/location` (web fallback for setting the current location without the iOS app)
+- List-page URL state follows the Next.js `searchParams` convention: read via `toSearchParams`
+  (collapses repeated params, drops empties) and written via `intersectionPageHref`, which seeds
+  from the current query so any param added later survives pagination
 - Image storage: Supabase Storage bucket `intersection-images` (private); signed URLs generated server-side
 - Requires env vars: `ADMIN_PASSWORD`, `SESSION_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BASE_URL`
 - Redirects **never** derive their origin from `req.url`: in a standalone build Next builds that origin

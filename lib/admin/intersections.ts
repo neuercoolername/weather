@@ -2,16 +2,49 @@ import { prisma } from "@/lib/prisma";
 
 export const PAGE_SIZE = 50;
 
-export type IntersectionFilter = "needs-text";
+export type IntersectionFilter = "needs-content";
 
-// Builds a list-page href preserving every active search param — dropping
-// `filter` here would page into the unfiltered list under filtered bounds.
-export function intersectionPageHref(
-  page: number,
-  filter?: IntersectionFilter
-): string {
-  const params = new URLSearchParams({ page: String(page) });
-  if (filter) params.set("filter", filter);
+// An intersection counts as done once it has text *or* at least one image.
+const NEEDS_CONTENT = {
+  AND: [{ OR: [{ text: null }, { text: "" }] }, { images: { none: {} } }],
+};
+
+// Next delivers a repeated param (?a=1&a=2) as an array; take the first and ignore
+// the rest, so a hand-edited URL degrades to one well-defined value.
+export function firstValue(
+  value: string | string[] | undefined
+): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+// Collapses Next's raw searchParams into a single-valued query, dropping empties so
+// `?filter=` doesn't travel through pagination as a meaningless key.
+export function toSearchParams(
+  raw: Record<string, string | string[] | undefined>
+): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(raw)) {
+    const single = firstValue(value);
+    if (single) params.set(key, single);
+  }
+  return params;
+}
+
+// `?filter=` arrives as an arbitrary string; anything unrecognised means unfiltered.
+export function parseIntersectionFilter(
+  value: string | null | undefined
+): IntersectionFilter | undefined {
+  return value === "needs-content" ? value : undefined;
+}
+
+// Seeds from the request's own query so every active param survives paging —
+// dropping `filter` here would page into the unfiltered list under filtered
+// bounds. Takes a query string rather than a URLSearchParams instance so this
+// still works if Pagination ever becomes a Client Component (class instances
+// don't cross the RSC serialization boundary).
+export function intersectionPageHref(page: number, query: string): string {
+  const params = new URLSearchParams(query);
+  params.set("page", String(page));
   return `/admin/intersections?${params}`;
 }
 
@@ -25,22 +58,20 @@ export interface IntersectionListItem {
 
 export async function getIntersectionStats(): Promise<{
   total: number;
-  needsText: number;
+  needsContent: number;
 }> {
-  const [total, needsText] = await Promise.all([
+  const [total, needsContent] = await Promise.all([
     prisma.intersection.count(),
-    prisma.intersection.count({ where: { OR: [{ text: null }, { text: "" }] } }),
+    prisma.intersection.count({ where: NEEDS_CONTENT }),
   ]);
-  return { total, needsText };
+  return { total, needsContent };
 }
 
 export async function getIntersectionPage(
   page: number,
-  filter?: "needs-text"
+  filter?: IntersectionFilter
 ): Promise<{ items: IntersectionListItem[]; totalPages: number }> {
-  const where = filter === "needs-text"
-    ? { OR: [{ text: null }, { text: "" }] }
-    : undefined;
+  const where = filter === "needs-content" ? NEEDS_CONTENT : undefined;
 
   const [total, items] = await Promise.all([
     prisma.intersection.count({ where }),

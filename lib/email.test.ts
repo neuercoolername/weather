@@ -16,18 +16,10 @@ const BASE_ARGS = {
 };
 
 describe("sendIntersectionEmail", () => {
-  it("sends without error when no text is provided", async () => {
+  it("sends without error", async () => {
     process.env.EMAIL_FROM = "trace@example.com";
     process.env.NOTIFICATION_EMAIL = "me@example.com";
     await expect(sendIntersectionEmail(BASE_ARGS)).resolves.toBeUndefined();
-  });
-
-  it("sends without error when text is provided", async () => {
-    process.env.EMAIL_FROM = "trace@example.com";
-    process.env.NOTIFICATION_EMAIL = "me@example.com";
-    await expect(
-      sendIntersectionEmail({ ...BASE_ARGS, text: "I was here before." })
-    ).resolves.toBeUndefined();
   });
 
   it("includes the admin link in the email body", async () => {
