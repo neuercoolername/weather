@@ -39,6 +39,23 @@ export function computeFitTransform(
   return { x, y, k };
 }
 
+// Centre a data-space point in the visible area at the current zoom scale, leaving `k`
+// untouched (this pans, it never zooms). `obscuredRight` is the width in pixels of an
+// overlay covering the right edge — pass 0 when the overlay is full-screen or absent.
+// The result is the transform under which projectToScreen(point) lands on that centre.
+export function computeCenterTransform(
+  point: Point,
+  viewport: { width: number; height: number },
+  obscuredRight: number,
+  k: number
+): FitTransform {
+  return {
+    x: (viewport.width - obscuredRight) / 2 - point.x * k,
+    y: viewport.height / 2 - -point.y * k,
+    k,
+  };
+}
+
 // Project a data-space point to screen space under a zoom transform (applies the y-flip).
 export function projectToScreen(
   point: Point,

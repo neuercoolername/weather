@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { zoomIdentity, ZoomTransform } from "d3-zoom";
 import { createTraceCamera, type TraceCamera } from "./traceCamera";
+import { computeCenterTransform } from "@/lib/camera";
 import TraceDots from "./TraceDots";
 import IntersectionPanel from "./IntersectionPanel";
 import TraceHeader from "./TraceHeader";
@@ -10,6 +11,8 @@ import type { WindField } from "@/lib/wind-field";
 import type { TracePoint } from "@/lib/data/trace-points";
 import type { IntersectionWithImages } from "@/lib/intersections";
 import { hasContent } from "@/lib/intersection-content";
+import { getNeighbourIds } from "@/lib/neighbours";
+import { toSvgPolyline } from "@/lib/svg-path";
 
 interface Props {
   tracePoints: TracePoint[];
@@ -49,55 +52,62 @@ export default function TraceSVG({ tracePoints, intersections, windField }: Prop
     cameraRef.current?.fit(tracePoints, PADDING);
   }, [tracePoints]);
 
+  // ── Derived from props + selection ───────────────────────────────────────────
+  const visibleIntersections = intersections.filter((ix) =>
+    hasContent(ix.text, ix.images.length)
+  );
+  const { prevId, nextId } = getNeighbourIds(visibleIntersections, activeId);
+  const activeIntersection = intersections.find((ix) => ix.id === activeId) ?? null;
+  const hoveredIntersection = intersections.find((ix) => ix.id === hoveredId) ?? null;
+  const tracePath = toSvgPolyline(tracePoints);
+
+  // ── Camera ───────────────────────────────────────────────────────────────────
   // Pan the selected intersection to the centre of the visible (non-panel) area.
-  useEffect(() => {
-    if (activeId === null) return;
-    const camera = cameraRef.current;
-    const ix = intersections.find((i) => i.id === activeId);
-    if (!camera || !ix) return;
+  // Called from the handlers below rather than an effect: this happens because the
+  // user selected something, not because the component rendered.
+  const centerOn = useCallback(
+    (id: number) => {
+      const camera = cameraRef.current;
+      const ix = intersections.find((i) => i.id === id);
+      if (!camera || !ix) return;
+      // On mobile the detail view covers the full screen, so centre the whole viewport.
+      const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+      const panelWidth = isMobile ? 0 : window.innerWidth * PANEL_WIDTH_FRACTION;
+      const { x, y, k } = computeCenterTransform(
+        ix,
+        { width: window.innerWidth, height: window.innerHeight },
+        panelWidth,
+        transformRef.current.k
+      );
+      camera.animateTo(zoomIdentity.translate(x, y).scale(k));
+    },
+    [intersections]
+  );
 
-    // On mobile the detail view covers the full screen, so centre the whole viewport.
-    const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
-    const panelWidth = isMobile ? 0 : window.innerWidth * PANEL_WIDTH_FRACTION;
-    const targetScreenX = (window.innerWidth - panelWidth) / 2;
-    const targetScreenY = window.innerHeight / 2;
-    const from = transformRef.current;
-    const toTx = targetScreenX - ix.x * from.k;
-    const toTy = targetScreenY - -ix.y * from.k;
-    camera.animateTo(zoomIdentity.translate(toTx, toTy).scale(from.k));
-  }, [activeId, intersections]);
-
-  // Stable handlers so the memoized header/panel/dots don't re-render every zoom frame.
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+  // These stay stable across zoom frames (transform isn't a dependency), so the
+  // memoized header and panel don't re-render as the camera moves.
   const handleActivate = useCallback(
-    (id: number) => setActiveId((prev) => (prev === id ? null : id)),
-    []
+    (id: number) => {
+      const next = activeId === id ? null : id;
+      setActiveId(next);
+      if (next !== null) centerOn(next);
+    },
+    [activeId, centerOn]
   );
   const handleHover = useCallback((id: number | null) => setHoveredId(id), []);
   const handleClose = useCallback(() => setActiveId(null), []);
 
-  const visibleIntersections = intersections.filter((ix) =>
-    hasContent(ix.text, ix.images.length)
-  );
-  const sorted = [...visibleIntersections].sort((a, b) => a.id - b.id);
-  const activeIndex = activeId !== null ? sorted.findIndex((ix) => ix.id === activeId) : -1;
-  const prevId = activeIndex > 0 ? sorted[activeIndex - 1].id : null;
-  const nextId =
-    activeIndex !== -1 && activeIndex < sorted.length - 1 ? sorted[activeIndex + 1].id : null;
-
   const handlePrev = useCallback(() => {
-    if (prevId !== null) setActiveId(prevId);
-  }, [prevId]);
+    if (prevId === null) return;
+    setActiveId(prevId);
+    centerOn(prevId);
+  }, [prevId, centerOn]);
   const handleNext = useCallback(() => {
-    if (nextId !== null) setActiveId(nextId);
-  }, [nextId]);
-
-  const activeIntersection = intersections.find((ix) => ix.id === activeId) ?? null;
-  const hoveredIntersection = intersections.find((ix) => ix.id === hoveredId) ?? null;
-
-  const tracePath =
-    tracePoints.length < 2
-      ? ""
-      : tracePoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x},${-p.y}`).join(" ");
+    if (nextId === null) return;
+    setActiveId(nextId);
+    centerOn(nextId);
+  }, [nextId, centerOn]);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">

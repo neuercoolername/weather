@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeFitTransform, projectToScreen } from "./camera";
+import { computeCenterTransform, computeFitTransform, projectToScreen } from "./camera";
 
 describe("computeFitTransform", () => {
   const vp = { width: 200, height: 100 };
@@ -28,6 +28,38 @@ describe("computeFitTransform", () => {
     expect(Number.isFinite(t.k)).toBe(true);
     expect(Number.isFinite(t.x)).toBe(true);
     expect(Number.isFinite(t.y)).toBe(true);
+  });
+});
+
+describe("computeCenterTransform", () => {
+  const vp = { width: 200, height: 100 };
+
+  // The property that matters: projecting the point under the returned transform
+  // must land it on the centre of the *unobscured* area.
+  it("lands the point in the middle of the full viewport when nothing is obscured", () => {
+    const point = { x: 3, y: 4 };
+    const t = computeCenterTransform(point, vp, 0, 2);
+    const { sx, sy } = projectToScreen(point, t);
+    expect(sx).toBeCloseTo(100);
+    expect(sy).toBeCloseTo(50);
+  });
+
+  it("shifts the centre left by half the obscured width", () => {
+    const point = { x: 3, y: 4 };
+    const t = computeCenterTransform(point, vp, 66, 2);
+    const { sx } = projectToScreen(point, t);
+    expect(sx).toBeCloseTo((200 - 66) / 2); // 67
+  });
+
+  it("preserves the zoom scale — it pans, never zooms", () => {
+    expect(computeCenterTransform({ x: 3, y: 4 }, vp, 0, 3.5).k).toBe(3.5);
+  });
+
+  it("respects the y-flip, so north stays up", () => {
+    const above = computeCenterTransform({ x: 0, y: 10 }, vp, 0, 1);
+    const below = computeCenterTransform({ x: 0, y: -10 }, vp, 0, 1);
+    // A point further north needs the camera translated further down-screen.
+    expect(above.y).toBeGreaterThan(below.y);
   });
 });
 
