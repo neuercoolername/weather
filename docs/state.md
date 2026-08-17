@@ -56,7 +56,7 @@ Records when the wind trace crosses itself.
 ### `IntersectionImage`
 Image attached to an intersection via the admin CMS.
 - Fields: `id` (cuid), `intersectionId` (FK), `storageKey` (path in Supabase Storage bucket `intersection-images`), `createdAt`
-- No caption — images stand on their own (the field was dropped in `20260816104623_drop_image_caption`, unused)
+- No caption — images stand on their own
 - Blobs stored in Supabase Storage (private bucket); access via server-generated signed URLs
   (`SIGNED_URL_EXPIRY = 86400`, i.e. 24h)
 
@@ -71,8 +71,7 @@ Hourly cron fetches Open-Meteo data and stores a snapshot (`instrumentation.ts` 
 Computes and stores trace points on each new snapshot.
 Detects intersections after each new segment.
 **The trace is the root page** — it lives in the `app/(trace)/` route group: `page.tsx` serves `/`
-(parentheses are excluded from the URL) and its components sit beside it. The old `/trace` route
-has been removed.
+(parentheses are excluded from the URL) and its components sit beside it.
 Renders the full SVG path with interactive intersection dots; only intersections with
 non-empty `text` get a dot.
 Intersection text preserves the newlines it was written with (`whitespace-pre-line` on the
@@ -89,9 +88,9 @@ On mobile (< 768px) the detail panel is full-screen with bottom nav instead of a
 ### Intersection weave visualization ⚠️ built, not wired up
 The idea: at each self-crossing the chronologically older segment shows a small gap and the newer
 segment passes through unbroken. The geometry exists and is fully unit-tested in `lib/domain/trace-weave.ts`
-(`computeWeaveSegments`, `buildWeavePaths`) — but **nothing imports it any more**. `TraceSVG`
-currently draws the trace as one plain `<path>`, so no weave is visible. Either re-wire it or
-delete the module; the tests pass either way and won't flag the drift.
+(`computeWeaveSegments`, `buildWeavePaths`) — but **nothing imports it**. `TraceSVG` draws the trace
+as one plain `<path>`, so no weave is visible. Either re-wire it or delete the module; the tests pass
+either way and won't flag the drift.
 
 The notes below still describe the geometry as written (backlog references them).
 Gap size is `GAP_SIZE = 10` content-space units (zoom-invariant). The gap formula is asymmetric:
@@ -106,7 +105,7 @@ Fire-and-forget — a failed send never breaks the weather-fetch cycle.
 Reply-to address is pre-set to `trace+<id>@<domain>` for future inbound handling.
 Email includes a direct link to the admin CMS detail page (`BASE_URL/admin/intersections/<id>`).
 Requires env vars: `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM`, `BASE_URL`.
-`BASE_URL` must be an **origin only** — no path (a stray `/trace` made every emailed admin link a 404).
+`BASE_URL` must be an **origin only** — a path on it 404s every emailed admin link.
 
 ### Admin CMS ✅
 Single-password admin interface at `/admin/*` for editing intersection text and managing images.
@@ -141,16 +140,7 @@ form when an intersection is hovered/active.
   last 24 hourly snapshots (`wind_gusts_10m` + `wind_direction_10m` from `rawJson.current`) — no
   rawJson crosses to the client.
 - Key files: `lib/domain/flow-field.ts`, `lib/domain/wind-field.ts`, `app/(trace)/FlowFieldHeadline.tsx`,
-  `app/(trace)/TraceHeader.tsx`, `app/(trace)/flow-field-renderer.ts`, `app/page.tsx`.
-  (`lib/compass.ts` was unused in full and has been deleted.)
-
-### Removed: AI generation pipeline ❌
-Dropped in `4ac55a9` ("move trace to root, remove AI generation pipeline"), together with the
-`Haiku` and `IntersectionText` models. There is no Anthropic call anywhere in the codebase now,
-and no per-snapshot haiku. Intersection text is written by hand in the admin CMS.
-Leftovers not yet cleaned up: `@anthropic-ai/sdk` is still a dependency with no importer,
-`ANTHROPIC_API_KEY` is still in `.env.example`, and `package.json` has `backfill:texts`,
-`backfill:texts:email`, and `reset:texts` scripts pointing at files that no longer exist.
+  `app/(trace)/TraceHeader.tsx`, `app/(trace)/flow-field-renderer.ts`, `app/(trace)/page.tsx`.
 
 ---
 
@@ -219,6 +209,13 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 Needs no secrets and no services: the whole suite mocks Prisma, `fetch`, and `resend`. The explicit
 `prisma generate` is belt-and-braces — `@prisma/client`'s postinstall already generates the client on
 `npm ci` — but it keeps the typecheck honest if that postinstall is ever skipped.
+
+`npm run typecheck` is `next typegen && tsc --noEmit`, and the `typegen` half is load-bearing.
+`PageProps<'/route'>` is a **global** that Next writes into `.next/types/`, which `tsconfig.json`
+includes; a fresh checkout has no `.next` (and no `next-env.d.ts` — it's gitignored), so bare `tsc`
+fails with `Cannot find name 'PageProps'`. `next typegen` generates those route types without a full
+build, needing no env vars or database. It also keeps local typechecks correct after a route is moved
+or deleted, where the stale generated types would otherwise report a route that no longer exists.
 
 **`build-and-deploy`** — gated on `verify` and restricted to pushes to `main`, so a red test, type
 error, or lint error stops the pipeline before anything is built or deployed. Builds and pushes the
