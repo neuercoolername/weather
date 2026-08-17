@@ -8,8 +8,9 @@ interface DotPoint {
   y: number;
 }
 
-// The interactive dots layer: one hit-dot per text-bearing intersection,
-// projected into screen space under the current zoom transform.
+// The interactive dots layer: one hit-dot per intersection with something to
+// show (see hasContent), projected into screen space under the current zoom
+// transform.
 export default function TraceDots({
   points,
   transform,

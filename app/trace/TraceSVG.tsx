@@ -9,6 +9,7 @@ import TraceHeader from "./TraceHeader";
 import type { WindField } from "@/lib/wind-field";
 import type { TracePoint } from "@/lib/data/trace-points";
 import type { IntersectionWithImages } from "@/lib/intersections";
+import { hasContent } from "@/lib/intersection-content";
 
 interface Props {
   tracePoints: TracePoint[];
@@ -74,8 +75,10 @@ export default function TraceSVG({ tracePoints, intersections, windField }: Prop
   const handleHover = useCallback((id: number | null) => setHoveredId(id), []);
   const handleClose = useCallback(() => setActiveId(null), []);
 
-  const textIntersections = intersections.filter((ix) => ix.text?.trim());
-  const sorted = [...textIntersections].sort((a, b) => a.id - b.id);
+  const visibleIntersections = intersections.filter((ix) =>
+    hasContent(ix.text, ix.images.length)
+  );
+  const sorted = [...visibleIntersections].sort((a, b) => a.id - b.id);
   const activeIndex = activeId !== null ? sorted.findIndex((ix) => ix.id === activeId) : -1;
   const prevId = activeIndex > 0 ? sorted[activeIndex - 1].id : null;
   const nextId =
@@ -119,7 +122,7 @@ export default function TraceSVG({ tracePoints, intersections, windField }: Prop
 
         {/* UI layer — interactive dots at fixed screen-pixel size */}
         <TraceDots
-          points={textIntersections}
+          points={visibleIntersections}
           transform={transform}
           activeId={activeId}
           hoveredId={hoveredId}

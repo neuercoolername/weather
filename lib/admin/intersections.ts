@@ -4,7 +4,9 @@ export const PAGE_SIZE = 50;
 
 export type IntersectionFilter = "needs-content";
 
-// An intersection counts as done once it has text *or* at least one image.
+// An intersection counts as done once it has text *or* at least one image. This is
+// the inverse of hasContent() in lib/intersection-content.ts, which gates the public
+// trace — evaluated in SQL rather than JS, so the two are kept in step by hand.
 const NEEDS_CONTENT = {
   AND: [{ OR: [{ text: null }, { text: "" }] }, { images: { none: {} } }],
 };

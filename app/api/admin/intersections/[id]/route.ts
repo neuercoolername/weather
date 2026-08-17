@@ -10,7 +10,10 @@ export async function PATCH(
 
   const intersection = await prisma.intersection.update({
     where: { id: Number(id) },
-    data: { text: typeof text === "string" ? text : null },
+    // Trim on write so whitespace-only text can't land in the gap between the two
+    // content checks: SQL sees "   " as text (not in the admin queue), while
+    // hasContent() trims it away (hidden on the trace).
+    data: { text: typeof text === "string" ? text.trim() || null : null },
     select: { id: true, text: true },
   });
 

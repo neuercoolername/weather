@@ -48,7 +48,9 @@ Records when the wind trace crosses itself.
 - References two `TracePoint` IDs (not snapshot IDs)
 - Stores crossing coordinates `(x, y)`
 - `text` is nullable, and hand-written in the admin CMS — not generated. An intersection
-  without text stays part of the line; only ones with text get a dot on the public trace.
+  with nothing to show stays part of the line; one with text **or** at least one image gets a
+  dot on the public trace. That rule is `hasContent` (`lib/intersection-content.ts`); the admin
+  "needs content" queue is its inverse, as a Prisma clause in `lib/admin/intersections.ts`.
 - Relations: `images` (1-to-many with `IntersectionImage`)
 
 ### `IntersectionImage`
