@@ -1,5 +1,5 @@
 import type { ZoomTransform } from "d3-zoom";
-import { projectToScreen } from "@/lib/camera";
+import { projectToScreen } from "@/lib/domain/trace-viewport";
 import IntersectionDot from "./IntersectionDot";
 
 interface DotPoint {

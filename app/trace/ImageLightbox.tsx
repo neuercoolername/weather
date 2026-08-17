@@ -1,4 +1,4 @@
-import type { IntersectionImage } from "@/lib/intersections";
+import type { IntersectionImage } from "@/lib/server/data/intersections";
 
 // Fullscreen overlay for a single image; the backdrop (but not the image) closes it.
 export default function ImageLightbox({

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { intersectionPageHref } from "@/lib/admin/intersections";
+import { intersectionPageHref } from "@/lib/domain/intersection-query";
 
 export default function Pagination({
   page,

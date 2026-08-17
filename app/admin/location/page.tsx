@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma";
-import { formatDate } from "@/lib/email";
+import { prisma } from "@/lib/server/prisma";
+import { formatDate } from "@/lib/domain/format-date";
 import AdminNav from "@/app/admin/AdminNav";
 import LocationForm from "./LocationForm";
 

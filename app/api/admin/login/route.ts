@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
-import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
-import { redirectToPath, safeNextPath } from "@/lib/redirect";
+import { getSession } from "@/lib/server/auth/session";
+import { checkRateLimit, resetRateLimit } from "@/lib/server/auth/rate-limit";
+import { redirectToPath, safeNextPath } from "@/lib/server/auth/redirect";
 
 export async function POST(req: NextRequest) {
   const ip =

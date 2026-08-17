@@ -1,4 +1,4 @@
-import type { IntersectionListItem as Item } from "@/lib/admin/intersections";
+import type { IntersectionListItem as Item } from "@/lib/server/data/admin-intersections";
 import IntersectionListItem from "./IntersectionListItem";
 
 export default function IntersectionList({ items }: { items: Item[] }) {

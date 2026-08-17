@@ -2,13 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { Archivo_Black } from "next/font/google";
-import type { WindField } from "@/lib/wind-field";
-import type { FlowFieldParams } from "@/lib/flow-field";
+import type { WindField } from "@/lib/domain/wind-field";
+import type { FlowFieldParams } from "@/lib/domain/flow-field";
 import {
   createFlowFieldRenderer,
   type FlowFieldRenderer,
   type FlowFieldRendererOpts,
-} from "./flowFieldRenderer";
+} from "./flow-field-renderer";
 
 // Heavy stencil face for the letterform mask.
 const stencil = Archivo_Black({ weight: "400", subsets: ["latin"], display: "swap" });

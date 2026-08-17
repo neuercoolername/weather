@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { WindField } from "@/lib/wind-field";
+import type { WindField } from "@/lib/domain/wind-field";
 import FlowFieldHeadline from "./FlowFieldHeadline";
 
 interface IntersectionSummary {

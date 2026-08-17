@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getIntersectionWithImages, getAdjacentIntersectionIds } from "@/lib/intersections";
-import { formatDate } from "@/lib/email";
+import { getIntersectionWithImages, getAdjacentIntersectionIds } from "@/lib/server/data/intersections";
+import { formatDate } from "@/lib/domain/format-date";
 import TextEditor from "./TextEditor";
 import ImageManager from "./ImageManager";
 import IntersectionNav from "./IntersectionNav";

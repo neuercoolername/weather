@@ -49,8 +49,8 @@ Records when the wind trace crosses itself.
 - Stores crossing coordinates `(x, y)`
 - `text` is nullable, and hand-written in the admin CMS — not generated. An intersection
   with nothing to show stays part of the line; one with text **or** at least one image gets a
-  dot on the public trace. That rule is `hasContent` (`lib/intersection-content.ts`); the admin
-  "needs content" queue is its inverse, as a Prisma clause in `lib/admin/intersections.ts`.
+  dot on the public trace. That rule is `hasContent` (`lib/domain/intersection-content.ts`); the admin
+  "needs content" queue is its inverse, as a Prisma clause in `lib/server/data/admin-intersections.ts`.
 - Relations: `images` (1-to-many with `IntersectionImage`)
 
 ### `IntersectionImage`
@@ -65,7 +65,7 @@ Image attached to an intersection via the admin CMS.
 ## Features
 
 ### Weather fetching ✅
-Hourly cron fetches Open-Meteo data and stores a snapshot (`instrumentation.ts` → `lib/cron.ts`).
+Hourly cron fetches Open-Meteo data and stores a snapshot (`instrumentation.ts` → `lib/server/cron.ts`).
 
 ### Wind trace ✅
 Computes and stores trace points on each new snapshot.
@@ -87,7 +87,7 @@ On mobile (< 768px) the detail panel is full-screen with bottom nav instead of a
 
 ### Intersection weave visualization ⚠️ built, not wired up
 The idea: at each self-crossing the chronologically older segment shows a small gap and the newer
-segment passes through unbroken. The geometry exists and is fully unit-tested in `lib/weave.ts`
+segment passes through unbroken. The geometry exists and is fully unit-tested in `lib/domain/trace-weave.ts`
 (`computeWeaveSegments`, `buildWeavePaths`) — but **nothing imports it any more**. `TraceSVG`
 currently draws the trace as one plain `<path>`, so no weave is visible. Either re-wire it or
 delete the module; the tests pass either way and won't flag the drift.
@@ -123,7 +123,7 @@ Single-password admin interface at `/admin/*` for editing intersection text and 
   `http://0.0.0.0:3000/admin/...` in production. Route handlers emit a relative `Location`
   (`redirectToPath`); `proxy.ts` needs an absolute URL — Next's middleware pipeline rejects a relative
   one — so it builds one from the forwarded/Host headers (`sameOriginUrl`).
-- Key files: `proxy.ts` (Next 16 middleware), `lib/redirect.ts`, `lib/session-config.ts`, `lib/session.ts`, `lib/supabase.ts`, `lib/rate-limit.ts`, `app/admin/`
+- Key files: `proxy.ts` (Next 16 middleware), `lib/server/auth/redirect.ts`, `lib/server/auth/session-config.ts`, `lib/server/auth/session.ts`, `lib/server/supabase.ts`, `lib/server/auth/rate-limit.ts`, `app/admin/`
 
 ### Flow-field headline ✅
 The `/` header text is rendered as an animated wind **quiver** (short direction strokes, dense inside
@@ -139,9 +139,9 @@ form when an intersection is hovered/active.
 - Server computes a compact `windField = { dirDeg, meanSpeed, gustFactor, TI, meanderDeg }` from the
   last 24 hourly snapshots (`wind_gusts_10m` + `wind_direction_10m` from `rawJson.current`) — no
   rawJson crosses to the client.
-- Key files: `lib/flow-field.ts`, `lib/wind-field.ts`, `app/trace/FlowFieldHeadline.tsx`,
-  `app/trace/TraceHeader.tsx`, `app/trace/flowFieldRenderer.ts`, `app/page.tsx`.
-  (`lib/compass.ts` is now unused in full — only its own test imports it.)
+- Key files: `lib/domain/flow-field.ts`, `lib/domain/wind-field.ts`, `app/trace/FlowFieldHeadline.tsx`,
+  `app/trace/TraceHeader.tsx`, `app/trace/flow-field-renderer.ts`, `app/page.tsx`.
+  (`lib/compass.ts` was unused in full and has been deleted.)
 
 ### Removed: AI generation pipeline ❌
 Dropped in `4ac55a9` ("move trace to root, remove AI generation pipeline"), together with the
@@ -153,25 +153,46 @@ Leftovers not yet cleaned up: `@anthropic-ai/sdk` is still a dependency with no 
 
 ---
 
+## Library layout
+
+`lib/` has exactly two top-level folders, and the folder name states what the code may touch:
+
+- **`lib/domain/`** — pure. No Prisma, no `fetch`, no `process.env`, no `next/*`. Colocated
+  `*.test.ts`. Safe to import from a client component.
+- **`lib/server/`** — everything that touches the world. Every file starts with `import "server-only"`,
+  so **nothing under `lib/server/` may be imported by a client component except as `import type`.**
+  `lib/server/data/` holds the queries that adapt rows into domain types; `lib/server/auth/` the
+  session, rate-limit, and redirect glue.
+
+A filename prefix does the grouping a subfolder would (`trace-geometry`, `trace-viewport`,
+`trace-weave`), so `lib/domain/` stays flat until a group is large enough to earn a folder. No
+`index.ts` barrels anywhere. The convention is written up in the `nextjs-project-structure` skill.
+
+Because `server-only` throws under plain Node resolution, `vitest.config.ts` aliases it to the
+package's own `empty.js` — the same module Next resolves it to under the `react-server` condition.
+
 ## Key files
-- `lib/weather.ts` — fetch, store snapshot, store trace point, fire intersection detection + email notification
-- `lib/trace.ts` — pure geometry: `computeTracePoint`, `segmentsIntersect`, `detectAndStoreIntersections`
-- `lib/weave.ts` — `computeWeaveSegments`, `buildWeavePaths` (weave geometry; currently unwired)
-- `lib/email.ts` — Resend client, `formatDate`, `sendIntersectionEmail`
-- `lib/redirect.ts` — `redirectToPath`, `sameOriginUrl`, `safeNextPath` (host-correct auth redirects)
-- `lib/camera.ts` — `computeFitTransform`, `projectToScreen` (pure camera maths)
-- `lib/data/trace-points.ts` — `getTracePoints` (ordered points for the public view)
-- `lib/data/wind.ts` — `getCurrentWindField` (snapshots → `WindField`, keeps rawJson server-side)
-- `lib/intersections.ts` — public/admin intersection queries + signed image URLs; `IntersectionWithImages` type
-- `lib/admin/intersections.ts` — admin list pagination, filter hrefs, `getIntersectionStats`
+- `lib/server/weather-ingest.ts` — fetch, store snapshot, store trace point, fire intersection detection + email notification
+- `lib/domain/trace-geometry.ts` — pure geometry: `computeTracePoint`, `segmentsIntersect`
+- `lib/server/data/intersection-detection.ts` — `detectAndStoreIntersections` (walks stored points, persists crossings)
+- `lib/domain/trace-weave.ts` — `computeWeaveSegments`, `buildWeavePaths` (weave geometry; currently unwired)
+- `lib/domain/format-date.ts` — `formatDate`, the one date format shared by emails and admin UI
+- `lib/server/email.ts` — Resend client, `sendIntersectionEmail`
+- `lib/server/auth/redirect.ts` — `redirectToPath`, `sameOriginUrl`, `safeNextPath` (host-correct auth redirects)
+- `lib/domain/trace-viewport.ts` — `computeFitTransform`, `projectToScreen` (pure viewport maths)
+- `lib/server/data/trace-points.ts` — `getTracePoints` (ordered points for the public view)
+- `lib/server/data/wind.ts` — `getCurrentWindField` (snapshots → `WindField`, keeps rawJson server-side)
+- `lib/server/data/intersections.ts` — public/admin intersection queries + signed image URLs; `IntersectionWithImages` type
+- `lib/server/data/admin-intersections.ts` — admin list pagination + `getIntersectionStats`
+- `lib/domain/intersection-query.ts` — pure searchParam parsing + `intersectionPageHref` for the admin queue
 - `app/page.tsx` — server component (the trace page), fetches trace points + intersections + wind field
 - `app/trace/page.tsx` — `redirect("/")` only
 - `app/trace/TraceSVG.tsx` — client component, orchestrator
-- `app/trace/traceCamera.ts` — d3-zoom controller (`fit`, `animateTo`, `destroy`)
-- `lib/flow-field.ts` — pure parameterised wind flow-field engine (Perlin/fBm, curl, Reynolds decomposition, length ramp)
-- `lib/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats)
+- `app/trace/trace-camera.ts` — d3-zoom controller (`fit`, `animateTo`, `destroy`)
+- `lib/domain/flow-field.ts` — pure parameterised wind flow-field engine (Perlin/fBm, curl, Reynolds decomposition, length ramp)
+- `lib/domain/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats)
 - `app/trace/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
-- `app/trace/flowFieldRenderer.ts` — the canvas draw loop the headline component wraps
+- `app/trace/flow-field-renderer.ts` — the canvas draw loop the headline component wraps
 - `app/trace/TraceHeader.tsx` — chooses header text ("Trace" | compact dates), mounts the flow-field headline
 - `app/trace/TraceDots.tsx` — the fixed-pixel dots layer
 - `app/trace/IntersectionDot.tsx` — SVG dot + hit area, fixed screen-pixel size

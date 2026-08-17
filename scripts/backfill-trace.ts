@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { computeTracePoint, detectAndStoreIntersections } from "../lib/trace";
+import { computeTracePoint } from "../lib/domain/trace-geometry";
+import { detectAndStoreIntersections } from "../lib/server/data/intersection-detection";
 
 const prisma = new PrismaClient();
 

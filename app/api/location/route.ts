@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { fetchAndStoreWeather } from "@/lib/weather";
+import { prisma } from "@/lib/server/prisma";
+import { fetchAndStoreWeather } from "@/lib/server/weather-ingest";
 
 export async function POST(request: NextRequest) {
   try {

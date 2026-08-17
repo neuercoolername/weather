@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
-import type { IntersectionWithImages, IntersectionImage } from "@/lib/intersections";
+import type { IntersectionWithImages, IntersectionImage } from "@/lib/server/data/intersections";
 import PanelNav from "./PanelNav";
 import IntersectionImages from "./IntersectionImages";
 import ImageLightbox from "./ImageLightbox";

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getSupabase, BUCKET } from "@/lib/supabase";
+import { prisma } from "@/lib/server/prisma";
+import { getSupabase, BUCKET } from "@/lib/server/supabase";
 
 type Params = { params: Promise<{ id: string; imageId: string }> };
 

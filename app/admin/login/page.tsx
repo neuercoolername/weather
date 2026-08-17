@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
+import { getSession } from "@/lib/server/auth/session";
 
 export default async function LoginPage({
   searchParams,

@@ -2,17 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { zoomIdentity, ZoomTransform } from "d3-zoom";
-import { createTraceCamera, type TraceCamera } from "./traceCamera";
-import { computeCenterTransform } from "@/lib/camera";
+import { createTraceCamera, type TraceCamera } from "./trace-camera";
+import { computeCenterTransform } from "@/lib/domain/trace-viewport";
 import TraceDots from "./TraceDots";
 import IntersectionPanel from "./IntersectionPanel";
 import TraceHeader from "./TraceHeader";
-import type { WindField } from "@/lib/wind-field";
-import type { TracePoint } from "@/lib/data/trace-points";
-import type { IntersectionWithImages } from "@/lib/intersections";
-import { hasContent } from "@/lib/intersection-content";
-import { getNeighbourIds } from "@/lib/neighbours";
-import { toSvgPolyline } from "@/lib/svg-path";
+import type { WindField } from "@/lib/domain/wind-field";
+import type { TracePoint } from "@/lib/server/data/trace-points";
+import type { IntersectionWithImages } from "@/lib/server/data/intersections";
+import { hasContent } from "@/lib/domain/intersection-content";
+import { getNeighbourIds } from "@/lib/domain/trace-neighbours";
+import { toSvgPolyline } from "@/lib/domain/trace-svg-path";
 
 interface Props {
   tracePoints: TracePoint[];

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { unsealData } from "iron-session";
-import { COOKIE_NAME, sessionOptions } from "@/lib/session-config";
-import type { SessionData } from "@/lib/session";
-import { sameOriginUrl } from "@/lib/redirect";
+import { COOKIE_NAME, sessionOptions } from "@/lib/server/auth/session-config";
+import type { SessionData } from "@/lib/server/auth/session";
+import { sameOriginUrl } from "@/lib/server/auth/redirect";
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

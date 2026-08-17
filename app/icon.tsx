@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
-import { prisma } from "@/lib/prisma";
-import { getWeatherEmoji } from "@/lib/wmo-codes";
+import { prisma } from "@/lib/server/prisma";
+import { getWeatherEmoji } from "@/lib/domain/wmo-codes";
 
 export const dynamic = "force-dynamic";
 export const size = { width: 32, height: 32 };

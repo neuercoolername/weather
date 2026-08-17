@@ -1,4 +1,4 @@
-import type { IntersectionImage } from "@/lib/intersections";
+import type { IntersectionImage } from "@/lib/server/data/intersections";
 
 // The intersection's image list; clicking one asks the parent to expand it.
 export default function IntersectionImages({

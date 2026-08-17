@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { formatDate } from "@/lib/email";
-import type { IntersectionListItem } from "@/lib/admin/intersections";
+import { formatDate } from "@/lib/domain/format-date";
+import type { IntersectionListItem } from "@/lib/server/data/admin-intersections";
 
 export default function IntersectionListItem({
   item,

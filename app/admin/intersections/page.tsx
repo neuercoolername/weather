@@ -2,9 +2,11 @@ import Link from "next/link";
 import {
   getIntersectionPage,
   getIntersectionStats,
+} from "@/lib/server/data/admin-intersections";
+import {
   parseIntersectionFilter,
   toSearchParams,
-} from "@/lib/admin/intersections";
+} from "@/lib/domain/intersection-query";
 import AdminNav from "@/app/admin/AdminNav";
 import IntersectionList from "./IntersectionList";
 import Pagination from "./Pagination";
