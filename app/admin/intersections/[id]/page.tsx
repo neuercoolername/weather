@@ -45,7 +45,7 @@ export default async function IntersectionDetailPage({
         <p>
           ({intersection.x.toFixed(4)}, {intersection.y.toFixed(4)})
         </p>
-        <Link href="/trace" className="hover:text-zinc-900 underline">
+        <Link href="/" className="hover:text-zinc-900 underline">
           view on trace
         </Link>
       </div>

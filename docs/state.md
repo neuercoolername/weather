@@ -70,8 +70,9 @@ Hourly cron fetches Open-Meteo data and stores a snapshot (`instrumentation.ts` 
 ### Wind trace ✅
 Computes and stores trace points on each new snapshot.
 Detects intersections after each new segment.
-**The trace is the root page** — `app/page.tsx` renders it; `/trace` is a `redirect("/")` kept
-so old links resolve. The `app/trace/` directory still holds all the trace components.
+**The trace is the root page** — it lives in the `app/(trace)/` route group: `page.tsx` serves `/`
+(parentheses are excluded from the URL) and its components sit beside it. The old `/trace` route
+has been removed.
 Renders the full SVG path with interactive intersection dots; only intersections with
 non-empty `text` get a dot.
 Intersection text preserves the newlines it was written with (`whitespace-pre-line` on the
@@ -81,7 +82,7 @@ Writing is edited in the admin CMS — `PATCH /api/admin/intersections/[id]`.
 ### Wind trace UI rebuild ✅
 d3-zoom two-layer SVG: trace scales with camera, dots stay fixed pixel size.
 Selecting a dot pans it to the centre of the visible (non-panel) area.
-Components: `TraceSVG` (orchestrator), `traceCamera` (d3-zoom controller), `TraceDots`,
+Components: `TraceSVG` (orchestrator), `trace-camera` (d3-zoom controller), `TraceDots`,
 `IntersectionDot`, `IntersectionPanel` (+ `PanelNav`, `IntersectionImages`, `ImageLightbox`).
 On mobile (< 768px) the detail panel is full-screen with bottom nav instead of a side panel.
 
@@ -139,8 +140,8 @@ form when an intersection is hovered/active.
 - Server computes a compact `windField = { dirDeg, meanSpeed, gustFactor, TI, meanderDeg }` from the
   last 24 hourly snapshots (`wind_gusts_10m` + `wind_direction_10m` from `rawJson.current`) — no
   rawJson crosses to the client.
-- Key files: `lib/domain/flow-field.ts`, `lib/domain/wind-field.ts`, `app/trace/FlowFieldHeadline.tsx`,
-  `app/trace/TraceHeader.tsx`, `app/trace/flow-field-renderer.ts`, `app/page.tsx`.
+- Key files: `lib/domain/flow-field.ts`, `lib/domain/wind-field.ts`, `app/(trace)/FlowFieldHeadline.tsx`,
+  `app/(trace)/TraceHeader.tsx`, `app/(trace)/flow-field-renderer.ts`, `app/page.tsx`.
   (`lib/compass.ts` was unused in full and has been deleted.)
 
 ### Removed: AI generation pipeline ❌
@@ -186,18 +187,17 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `lib/server/data/admin-intersections.ts` — admin list pagination + `getIntersectionStats`
 - `lib/domain/intersection-query.ts` — pure searchParam parsing + `intersectionPageHref` for the admin queue
 - `app/page.tsx` — server component (the trace page), fetches trace points + intersections + wind field
-- `app/trace/page.tsx` — `redirect("/")` only
-- `app/trace/TraceSVG.tsx` — client component, orchestrator
-- `app/trace/trace-camera.ts` — d3-zoom controller (`fit`, `animateTo`, `destroy`)
+- `app/(trace)/TraceSVG.tsx` — client component, orchestrator
+- `app/(trace)/trace-camera.ts` — d3-zoom controller (`fit`, `animateTo`, `destroy`)
 - `lib/domain/flow-field.ts` — pure parameterised wind flow-field engine (Perlin/fBm, curl, Reynolds decomposition, length ramp)
 - `lib/domain/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats)
-- `app/trace/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
-- `app/trace/flow-field-renderer.ts` — the canvas draw loop the headline component wraps
-- `app/trace/TraceHeader.tsx` — chooses header text ("Trace" | compact dates), mounts the flow-field headline
-- `app/trace/TraceDots.tsx` — the fixed-pixel dots layer
-- `app/trace/IntersectionDot.tsx` — SVG dot + hit area, fixed screen-pixel size
-- `app/trace/IntersectionPanel.tsx` — detail panel (side on desktop, full-screen on mobile)
-- `app/trace/PanelNav.tsx`, `app/trace/IntersectionImages.tsx`, `app/trace/ImageLightbox.tsx` — panel sub-components
+- `app/(trace)/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
+- `app/(trace)/flow-field-renderer.ts` — the canvas draw loop the headline component wraps
+- `app/(trace)/TraceHeader.tsx` — chooses header text ("Trace" | compact dates), mounts the flow-field headline
+- `app/(trace)/TraceDots.tsx` — the fixed-pixel dots layer
+- `app/(trace)/IntersectionDot.tsx` — SVG dot + hit area, fixed screen-pixel size
+- `app/(trace)/IntersectionPanel.tsx` — detail panel (side on desktop, full-screen on mobile)
+- `app/(trace)/PanelNav.tsx`, `app/(trace)/IntersectionImages.tsx`, `app/(trace)/ImageLightbox.tsx` — panel sub-components
 - `proxy.ts` — Next 16 middleware guarding `/admin/*` and `/api/admin/*`
 - `app/api/location/route.ts` — POST endpoint receiving GPS coordinates from iOS app
 - `app/api/admin/login/route.ts`, `app/api/admin/logout/route.ts` — admin auth
@@ -227,7 +227,7 @@ cloudflared SSH tunnel.
 
 Limits worth knowing:
 - Lint failures gate on **errors only**. Three `@next/next/no-img-element` warnings are outstanding
-  (`app/trace/ImageLightbox.tsx`, `app/trace/IntersectionImages.tsx`,
+  (`app/(trace)/ImageLightbox.tsx`, `app/(trace)/IntersectionImages.tsx`,
   `app/admin/intersections/[id]/ImageItem.tsx`); `--max-warnings 0` is off until those are converted.
 - `verify` does not run `npm run build` — the Docker build does, so a build break still fails the
   pipeline, but only after `verify` passes.

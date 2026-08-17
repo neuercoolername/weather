@@ -1,7 +1,7 @@
 import { getAllIntersectionsWithImages } from "@/lib/server/data/intersections";
 import { getTracePoints } from "@/lib/server/data/trace-points";
 import { getCurrentWindField } from "@/lib/server/data/wind";
-import TraceSVG from "./trace/TraceSVG";
+import TraceSVG from "./TraceSVG";
 
 export const dynamic = "force-dynamic";
 

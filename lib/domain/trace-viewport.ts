@@ -1,6 +1,6 @@
 // Viewport math: mapping the trace's abstract data space onto the screen. Pure
 // geometry about viewports, pixels, and the zoom transform — the pure counterpart
-// of app/trace/trace-camera.ts, which owns the d3-zoom behaviour. Distinct from
+// of app/(trace)/trace-camera.ts, which owns the d3-zoom behaviour. Distinct from
 // lib/domain/trace-geometry, which is the trace in data-space and knows nothing
 // about screens.
 
