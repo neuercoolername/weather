@@ -1,18 +1,13 @@
+import type { IntersectionImage } from "@/lib/server/data/intersections";
 import ImageItem from "./ImageItem";
 import ImageUploadForm from "./ImageUploadForm";
-
-interface ImageRow {
-  id: string;
-  storageKey: string;
-  signedUrl: string;
-}
 
 export default function ImageManager({
   intersectionId,
   initialImages,
 }: {
   intersectionId: number;
-  initialImages: ImageRow[];
+  initialImages: IntersectionImage[];
 }) {
   return (
     <div className="space-y-6">

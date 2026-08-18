@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ImageFrame from "@/components/ImageFrame";
+import type { IntersectionImage } from "@/lib/server/data/intersections";
 
 interface Props {
   intersectionId: number;
-  image: {
-    id: string;
-    signedUrl: string;
-  };
+  image: IntersectionImage;
 }
 
 export default function ImageItem({ intersectionId, image }: Props) {
@@ -24,10 +23,13 @@ export default function ImageItem({ intersectionId, image }: Props) {
 
   return (
     <div className="space-y-2">
-      <img
+      <ImageFrame
         src={image.signedUrl}
-        alt=""
-        className="max-w-full max-h-96 object-contain"
+        width={image.width}
+        height={image.height}
+        eager
+        frameClassName="relative max-w-full max-h-96"
+        className="object-contain"
       />
       <div className="flex items-baseline gap-4">
         {confirmDelete ? (

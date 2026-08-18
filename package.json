@@ -10,26 +10,30 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "backfill:trace": "tsx scripts/backfill-trace.ts",
-    "reset-trace": "tsx scripts/reset-trace.ts"
+    "backfill:trace": "tsx --tsconfig tsconfig.scripts.json scripts/backfill-trace.ts",
+    "backfill:images": "tsx --tsconfig tsconfig.scripts.json scripts/backfill-image-variants.ts",
+    "reset-trace": "tsx --tsconfig tsconfig.scripts.json scripts/reset-trace.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
     "@supabase/supabase-js": "^2.104.0",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
+    "heic-convert": "^2.1.0",
     "iron-session": "^8.0.4",
     "next": "16.1.6",
     "node-cron": "^4.2.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "resend": "^6.9.3",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/d3-selection": "^3.0.11",
     "@types/d3-zoom": "^3.0.8",
+    "@types/heic-convert": "^2.1.1",
     "@types/node": "^20",
     "@types/node-cron": "^3.0.11",
     "@types/react": "^19",

@@ -1,4 +1,5 @@
 import type { IntersectionImage } from "@/lib/server/data/intersections";
+import ImageFrame from "@/components/ImageFrame";
 
 // The intersection's image list; clicking one asks the parent to expand it.
 export default function IntersectionImages({
@@ -10,12 +11,16 @@ export default function IntersectionImages({
 }) {
   return (
     <div className="space-y-4">
-      {images.map((img) => (
-        <img
+      {images.map((img, i) => (
+        <ImageFrame
           key={img.id}
           src={img.signedUrl}
-          alt=""
-          className="w-full max-h-[60vh] object-contain cursor-pointer"
+          width={img.width}
+          height={img.height}
+          // Opening the panel is the request for its first image; the rest can wait.
+          eager={i === 0}
+          frameClassName="relative w-full max-h-[60vh]"
+          className="object-contain cursor-pointer max-h-[60vh]"
           onClick={() => onExpand(img)}
         />
       ))}

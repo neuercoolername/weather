@@ -55,10 +55,19 @@ Records when the wind trace crosses itself.
 
 ### `IntersectionImage`
 Image attached to an intersection via the admin CMS.
-- Fields: `id` (cuid), `intersectionId` (FK), `storageKey` (path in Supabase Storage bucket `intersection-images`), `createdAt`
+- Fields: `id` (cuid), `intersectionId` (FK), `storageKey` (path in Supabase Storage bucket `intersection-images`), `createdAt`,
+  `width` / `height` / `bytes` (nullable — intrinsic size of the stored image)
 - No caption — images stand on their own
 - Blobs stored in Supabase Storage (private bucket); access via server-generated signed URLs
   (`SIGNED_URL_EXPIRY = 86400`, i.e. 24h)
+- Uploads are normalised on the way in by `lib/server/images.ts`: EXIF-oriented, downscaled to a
+  2000px long edge, stripped of metadata and re-encoded as WebP q80. Everything is stored as
+  `.webp` regardless of what was uploaded. Knobs live in `IMAGE_CONFIG`.
+- iPhone HEIC is decoded by `heic-convert` before sharp sees it — sharp's bundled libvips ships the
+  AV1 codec but not libde265, so it can read AVIF and not HEVC-encoded HEIC. It is slow (seconds per
+  frame), which is tolerable only because uploads are admin-only.
+- `width`/`height` let the client reserve the exact aspect ratio before the bytes arrive, so images
+  no longer shift the layout as they load.
 
 ---
 
@@ -208,6 +217,9 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `lib/server/data/trace-points.ts` — `getTracePoints` (ordered points for the public view)
 - `lib/server/data/wind.ts` — `getCurrentWindField` (snapshots → `WindField`, keeps rawJson server-side)
 - `lib/server/data/intersections.ts` — public/admin intersection queries + signed image URLs; `IntersectionWithImages` type
+- `lib/server/images.ts` — upload processing (HEIC decode, orient, downscale, WebP encode); `IMAGE_CONFIG`
+- `lib/server/image-urls.ts` — batched + memoised signed URLs; URLs are held for half their validity
+  so the query string stays stable across renders and the browser can actually cache the image
 - `lib/server/data/admin-intersections.ts` — admin list pagination + `getIntersectionStats`
 - `lib/domain/intersection-query.ts` — pure searchParam parsing + `intersectionPageHref` for the admin queue
 - `app/(trace)/page.tsx` — server component (the trace page), fetches trace points + intersections + wind field
@@ -224,6 +236,9 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `app/(trace)/IntersectionDot.tsx` — SVG ring + hit area, sized in screen pixels
 - `app/(trace)/IntersectionPanel.tsx` — detail panel (side on desktop, full-screen on mobile)
 - `app/(trace)/PanelNav.tsx`, `app/(trace)/IntersectionImages.tsx`, `app/(trace)/ImageLightbox.tsx` — panel sub-components
+- `components/ImageFrame.tsx` — shared image element: reserves the aspect ratio up front and
+  cross-fades a hairline frame into the loaded image. The only component outside `app/`, because
+  both the trace panel and the admin editor use it.
 - `proxy.ts` — Next 16 middleware guarding `/admin/*` and `/api/admin/*`
 - `app/api/location/route.ts` — POST endpoint receiving GPS coordinates from iOS app
 - `app/api/admin/login/route.ts`, `app/api/admin/logout/route.ts` — admin auth
@@ -232,6 +247,8 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `app/api/admin/intersections/[id]/images/[imageId]/route.ts` — DELETE image
 - `app/api/admin/location/route.ts` — POST location from the admin web fallback
 - `scripts/backfill-trace.ts` — one-time backfill for pre-existing snapshots
+- `scripts/backfill-image-variants.ts` — re-processes images stored before the resize pipeline
+  (`npm run backfill:images`; dry by default, `--apply` to write)
 - `scripts/reset-trace.ts` — deletes all trace points and intersections from DB
 - `docs/backlog.md` — project backlog
 
@@ -259,9 +276,8 @@ image to GHCR, runs `prisma migrate deploy`, then pulls and restarts the contain
 cloudflared SSH tunnel.
 
 Limits worth knowing:
-- Lint failures gate on **errors only**. Three `@next/next/no-img-element` warnings are outstanding
-  (`app/(trace)/ImageLightbox.tsx`, `app/(trace)/IntersectionImages.tsx`,
-  `app/admin/intersections/[id]/ImageItem.tsx`); `--max-warnings 0` is off until those are converted.
+- Lint failures gate on **errors only**, though the tree is currently warning-clean, so
+  `--max-warnings 0` could now be turned on.
 - `verify` does not run `npm run build` — the Docker build does, so a build break still fails the
   pipeline, but only after `verify` passes.
 - The image is tagged `:latest` only, so there is no rollback target and the server's `pull` is not

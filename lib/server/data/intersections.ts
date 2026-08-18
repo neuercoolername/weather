@@ -1,28 +1,26 @@
 import "server-only";
 
 import { prisma } from "@/lib/server/prisma";
-import {
-  getSupabase,
-  BUCKET,
-  SIGNED_URL_EXPIRY,
-} from "@/lib/server/supabase";
+import { signedUrlsFor } from "@/lib/server/image-urls";
 
 const IMAGE_SELECT = {
   orderBy: { createdAt: "asc" as const },
-  select: { id: true, storageKey: true },
+  select: {
+    id: true,
+    storageKey: true,
+    width: true,
+    height: true,
+  },
 };
 
 async function withSignedUrls<T extends { storageKey: string }>(
   images: T[]
 ): Promise<(T & { signedUrl: string })[]> {
-  return Promise.all(
-    images.map(async (img) => {
-      const { data } = await getSupabase().storage
-        .from(BUCKET)
-        .createSignedUrl(img.storageKey, SIGNED_URL_EXPIRY);
-      return { ...img, signedUrl: data?.signedUrl ?? "" };
-    })
-  );
+  const urls = await signedUrlsFor(images.map((img) => img.storageKey));
+  return images.map((img) => ({
+    ...img,
+    signedUrl: urls.get(img.storageKey) ?? "",
+  }));
 }
 
 // The intersection shape the public trace renders — derived from the query below
@@ -47,12 +45,18 @@ export async function getAllIntersectionsWithImages() {
     },
   });
 
-  return Promise.all(
-    intersections.map(async (ix) => ({
-      ...ix,
-      images: await withSignedUrls(ix.images),
-    }))
+  // One signing call for every image on the page, not one per intersection.
+  const urls = await signedUrlsFor(
+    intersections.flatMap((ix) => ix.images.map((img) => img.storageKey))
   );
+
+  return intersections.map((ix) => ({
+    ...ix,
+    images: ix.images.map((img) => ({
+      ...img,
+      signedUrl: urls.get(img.storageKey) ?? "",
+    })),
+  }));
 }
 
 export async function getAdjacentIntersectionIds(
