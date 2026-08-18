@@ -2,7 +2,18 @@
 
 ## Up next
 
-_(empty)_
+- [ ] **Nav icons** — the panel's `←` `→` `✕` are bare Unicode glyphs set in the serif body face
+  (`PanelNav.tsx`), so they sit at inconsistent optical weights (`✕` is noticeably heavier than the
+  arrows) and read in the wrong voice for a control. Three directions were prototyped in the trace
+  marks bench and none chosen: hairline SVG drawn at the trace's own stroke weight; the same glyphs
+  reset in IBM Plex Mono; or a set built from the trace's own vocabulary (a crossing at a real angle
+  for close, one thread deflected by another for the arrows).
+
+- [ ] **Panel nav within an opened group** — a mark can now stand for several crossings, but the
+  panel's prev/next still walks the global list (`getNeighbourIds`). When a group is opened by
+  falling back to its first member — the case where zoom can never separate it — the other members
+  are only reachable by stepping through everything else. Walking within the group first, then out
+  to the global list, would make that fallback feel deliberate rather than lossy.
 
 ## Someday
 

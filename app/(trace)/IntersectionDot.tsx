@@ -1,18 +1,27 @@
 interface Props {
   sx: number;
   sy: number;
-  isActive: boolean;
-  isHovered: boolean;
+  /** resting ring radius in screen px, including any hover/active growth */
+  radius: number;
+  strokeWidth: number;
+  hitRadius: number;
+  /** breathing offset; carried on the element so the rAF controller can find it */
+  phase: number;
   onClick: (e: React.MouseEvent) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
 }
 
+// One mark on the trace. The visible ring's `r` is overwritten every frame by
+// mark-breathing.ts, which locates these circles by the data attributes below —
+// React owns the resting value, the controller owns the breath.
 export default function IntersectionDot({
   sx,
   sy,
-  isActive,
-  isHovered,
+  radius,
+  strokeWidth,
+  hitRadius,
+  phase,
   onClick,
   onMouseEnter,
   onMouseLeave,
@@ -22,7 +31,7 @@ export default function IntersectionDot({
       <circle
         cx={sx}
         cy={sy}
-        r={20}
+        r={hitRadius}
         fill="transparent"
         className="cursor-pointer"
         onClick={onClick}
@@ -32,13 +41,13 @@ export default function IntersectionDot({
       <circle
         cx={sx}
         cy={sy}
-        r={isHovered || isActive ? 15 : 8}
+        r={radius}
         fill="none"
         stroke="currentColor"
-        strokeWidth={isActive ? 2 : 1}
-        opacity={1 }
-        style={{ transition: "r 0.1s, opacity 0.1s" }}
+        strokeWidth={strokeWidth}
         pointerEvents="none"
+        data-mark-radius={radius}
+        data-mark-phase={phase}
       />
     </g>
   );

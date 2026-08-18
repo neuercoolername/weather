@@ -5,14 +5,18 @@
 import { zoom as d3zoom, zoomIdentity, type ZoomTransform } from "d3-zoom";
 import { select } from "d3-selection";
 import { computeFitTransform } from "@/lib/domain/trace-viewport";
+import { MAX_SCALE } from "@/lib/domain/trace-marks";
 
 const PAN_DURATION = 400;
 const easeInOutQuad = (t: number) =>
   t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
 export interface TraceCamera {
-  /** Fit all points into the current viewport (instant). */
-  fit(points: { x: number; y: number }[], padding: number): void;
+  /** The scale at which all points fit the current viewport, without moving the
+   *  camera. Everything else is expressed relative to this. */
+  fitScale(points: { x: number; y: number }[], padding: number): number | null;
+  /** Fit all points into the current viewport (instant). Returns the fit scale. */
+  fit(points: { x: number; y: number }[], padding: number): number | null;
   /** Animate from the current transform to `target`. Cancels any in-flight animation. */
   animateTo(target: ZoomTransform, opts?: { duration?: number }): void;
   destroy(): void;
@@ -25,8 +29,13 @@ export function createTraceCamera(
   let current: ZoomTransform = zoomIdentity;
   let raf = 0;
 
+  // The lower bound is set from the fit scale in fit(), not fixed here: the fitted
+  // scale is data-dependent (0.072 on the real trace, and falling as the trace grows),
+  // so a hardcoded floor sits *above* it. fit() reaches the view through zoom.transform,
+  // which bypasses the extent — but the first wheel event would then clamp the scale up
+  // and the whole trace could never be framed again.
   const zoom = d3zoom<SVGSVGElement, unknown>()
-    .scaleExtent([0.1, 20])
+    .scaleExtent([0.1, MAX_SCALE])
     .on("zoom", (e) => {
       current = e.transform;
       onTransform(e.transform);
@@ -37,16 +46,30 @@ export function createTraceCamera(
 
   const apply = (t: ZoomTransform) => sel.call(zoom.transform, t);
 
+  // Measuring the fit is also what sets the zoom floor, so the two can never disagree.
+  const computeFit = (points: { x: number; y: number }[], padding: number) => {
+    const rect = svg.getBoundingClientRect();
+    const t = computeFitTransform(
+      points,
+      { width: rect.width, height: rect.height },
+      padding
+    );
+    if (!t) return null;
+    // Let the viewer pull back slightly past the fitted view, never less far than it.
+    zoom.scaleExtent([t.k * 0.9, MAX_SCALE]);
+    return t;
+  };
+
   return {
+    fitScale(points, padding) {
+      return computeFit(points, padding)?.k ?? null;
+    },
+
     fit(points, padding) {
-      const rect = svg.getBoundingClientRect();
-      const t = computeFitTransform(
-        points,
-        { width: rect.width, height: rect.height },
-        padding
-      );
-      if (!t) return;
+      const t = computeFit(points, padding);
+      if (!t) return null;
       apply(zoomIdentity.translate(t.x, t.y).scale(t.k));
+      return t.k;
     },
 
     animateTo(target, opts) {

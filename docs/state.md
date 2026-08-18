@@ -72,18 +72,52 @@ Computes and stores trace points on each new snapshot.
 Detects intersections after each new segment.
 **The trace is the root page** — it lives in the `app/(trace)/` route group: `page.tsx` serves `/`
 (parentheses are excluded from the URL) and its components sit beside it.
-Renders the full SVG path with interactive intersection dots; only intersections with
-non-empty `text` get a dot.
+Renders the full SVG path with interactive intersection marks; only intersections with
+something to show get one (`hasContent`: text or at least one image).
 Intersection text preserves the newlines it was written with (`whitespace-pre-line` on the
 panel's `<p>`); the text stays a flat string, no paragraph parsing.
 Writing is edited in the admin CMS — `PATCH /api/admin/intersections/[id]`.
 
 ### Wind trace UI rebuild ✅
-d3-zoom two-layer SVG: trace scales with camera, dots stay fixed pixel size.
-Selecting a dot pans it to the centre of the visible (non-panel) area.
+d3-zoom two-layer SVG: the content layer pans and scales with the camera, the marks layer is
+positioned in data space but sized in screen pixels. Selecting a mark pans it to the centre of the
+visible (non-panel) area.
 Components: `TraceSVG` (orchestrator), `trace-camera` (d3-zoom controller), `TraceDots`,
 `IntersectionDot`, `IntersectionPanel` (+ `PanelNav`, `IntersectionImages`, `ImageLightbox`).
 On mobile (< 768px) the detail panel is full-screen with bottom nav instead of a side panel.
+
+### Trace marks ✅
+Stroke weight and crossing marks are one system, tuned together in a prototype bench and driven by
+`TraceMarkParams` (`lib/domain/trace-marks.ts`, defaults = the tuned values, overridable via a
+`params` prop on `TraceSVG`). No weight or size literal survives in the render path.
+
+Both widths come off the same curve `base · z^exponent` where `z = k / kFit`, so the mark:trace
+stroke ratio is fixed by `markerRatio` at every zoom — previously the trace scaled with the camera
+(`strokeWidth={1}` → `1 × k`) while the dots were flat, so the two matched at exactly one scale and
+the trace rendered ~0.07px at the fitted view. Everything is relative to `kFit` rather than absolute
+`k` because `kFit` shrinks as the trace grows.
+
+Crowded marks collapse into one ring enclosing the group's screen footprint, so ring size means
+"how much room this group takes up" — the number of crossings in a group is deliberately not
+encoded. Grouping is single-link on distance, never grid-bucketed: a grid's arbitrary cell
+boundaries make members flip cells on a hair of zoom and the drawn centroid teleport.
+
+Clicking a group flies to the scale where it *first* comes apart (longest edge of its minimum
+spanning tree crossing the link threshold, × `openMargin`), not to its bounding box — fitting the
+box overshoots and throws the other members off screen. A group that cannot come apart within the
+zoom range opens the first of its members instead; only one place in the trace needs this, where
+three crossings sit within 0.02 units of each other and would want `k ≈ 470`.
+
+Marks breathe on the flow-field headline's gust period, with the per-mark phase taken from the
+crossing's own `fetchedAt`. The loop is an imperative controller (`mark-breathing.ts`) that writes
+`r` directly on the circles, so animation never travels through React state; it pauses on
+`visibilitychange` and never starts under `prefers-reduced-motion`, leaving the resting radius.
+
+Two camera bugs fixed alongside: `scaleExtent` had a fixed lower bound (0.1) sitting *above* the
+real fit scale, so the first wheel event clamped the zoom up and the whole trace could never be
+framed again — the floor now comes from the measured fit. And the fit only ran on data change, so
+the trace never re-fitted on window resize; a `ResizeObserver` now handles both the initial fit and
+resize, re-fitting only while the viewer has not taken the camera over.
 
 ### Intersection weave visualization ⚠️ built, not wired up
 The idea: at each self-crossing the chronologically older segment shows a small gap and the newer
@@ -176,16 +210,18 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `lib/server/data/intersections.ts` — public/admin intersection queries + signed image URLs; `IntersectionWithImages` type
 - `lib/server/data/admin-intersections.ts` — admin list pagination + `getIntersectionStats`
 - `lib/domain/intersection-query.ts` — pure searchParam parsing + `intersectionPageHref` for the admin queue
-- `app/page.tsx` — server component (the trace page), fetches trace points + intersections + wind field
+- `app/(trace)/page.tsx` — server component (the trace page), fetches trace points + intersections + wind field
 - `app/(trace)/TraceSVG.tsx` — client component, orchestrator
-- `app/(trace)/trace-camera.ts` — d3-zoom controller (`fit`, `animateTo`, `destroy`)
+- `app/(trace)/trace-camera.ts` — d3-zoom controller (`fitScale`, `fit`, `animateTo`, `destroy`)
+- `lib/domain/trace-marks.ts` — `TraceMarkParams`, weight curve, grouping, split scale, open action (pure)
+- `app/(trace)/mark-breathing.ts` — rAF controller breathing the marks' radii
 - `lib/domain/flow-field.ts` — pure parameterised wind flow-field engine (Perlin/fBm, curl, Reynolds decomposition, length ramp)
 - `lib/domain/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats)
 - `app/(trace)/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
 - `app/(trace)/flow-field-renderer.ts` — the canvas draw loop the headline component wraps
 - `app/(trace)/TraceHeader.tsx` — chooses header text ("Trace" | compact dates), mounts the flow-field headline
-- `app/(trace)/TraceDots.tsx` — the fixed-pixel dots layer
-- `app/(trace)/IntersectionDot.tsx` — SVG dot + hit area, fixed screen-pixel size
+- `app/(trace)/TraceDots.tsx` — the marks layer; one element per group, not per intersection
+- `app/(trace)/IntersectionDot.tsx` — SVG ring + hit area, sized in screen pixels
 - `app/(trace)/IntersectionPanel.tsx` — detail panel (side on desktop, full-screen on mobile)
 - `app/(trace)/PanelNav.tsx`, `app/(trace)/IntersectionImages.tsx`, `app/(trace)/ImageLightbox.tsx` — panel sub-components
 - `proxy.ts` — Next 16 middleware guarding `/admin/*` and `/api/admin/*`
