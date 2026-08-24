@@ -24,10 +24,10 @@ export function getSupabase(): SupabaseClient {
  */
 /**
  * A function rather than a constant so the environment is read at call time, the way
- * `getSupabase` already does. Scripts pick `.env` up only as a side effect of constructing
- * `PrismaClient`, which runs after every import has been evaluated — a module-scope constant would
- * therefore capture whatever was set before that, and quietly resolve to the production bucket
- * depending on import order.
+ * `getSupabase` already does. Scripts pick `.env` up only as a side effect of importing
+ * `@prisma/client`, so a module-scope constant would resolve against whatever was set before that
+ * import happened to be evaluated — and quietly fall back to the production bucket when it lost
+ * the race.
  *
  * `||` rather than `??`: a blank `SUPABASE_BUCKET=` line is a plausible way to write "unset", and
  * an empty bucket name would fail every storage call while reading as "not the dev bucket" to the

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
-import { processUpload, IMAGE_CONFIG } from "./images";
+import { processUpload, blobFor, IMAGE_CONFIG } from "./images";
 
 // Real buffers through the real encoder — the whole point of this module is what sharp
 // actually emits, so stubbing it would test nothing.
@@ -116,5 +116,31 @@ describe("processUpload", () => {
     await expect(
       processUpload(Buffer.from("this is not an image"), "image/jpeg")
     ).rejects.toThrow();
+  });
+});
+
+// The upload path only ever sees the value `blobFor` produces, so that is the contract worth
+// pinning. These do not reproduce the production "SharedArrayBuffer is not allowed" failure —
+// sharp's raw buffer converts fine under glibc, which is the whole reason that bug needed the
+// Alpine container to appear.
+describe("blobFor", () => {
+  it("carries the encoded bytes and the stored content type", async () => {
+    const out = await processUpload(await jpeg(600, 400), "image/jpeg");
+    const blob = blobFor(out);
+
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.size).toBe(out.bytes);
+    expect(blob.type).toBe("image/webp");
+    expect(new Uint8Array(await blob.arrayBuffer())).toEqual(
+      new Uint8Array(out.data)
+    );
+  });
+
+  it("is accepted as a fetch body", async () => {
+    const blob = blobFor(await processUpload(await jpeg(600, 400), "image/jpeg"));
+
+    expect(
+      () => new Request("http://local", { method: "POST", body: blob })
+    ).not.toThrow();
   });
 });

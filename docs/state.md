@@ -160,7 +160,7 @@ Single-password admin interface at `/admin/*` for editing intersection text and 
 - List-page URL state follows the Next.js `searchParams` convention: read via `toSearchParams`
   (collapses repeated params, drops empties) and written via `intersectionPageHref`, which seeds
   from the current query so any param added later survives pagination
-- Image storage: Supabase Storage bucket `intersection-images` (private); signed URLs generated server-side
+- Image storage: private Supabase Storage bucket named by `SUPABASE_BUCKET`; signed URLs generated server-side
 - Requires env vars: `ADMIN_PASSWORD`, `SESSION_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BASE_URL`
 - Redirects **never** derive their origin from `req.url`: in a standalone build Next builds that origin
   from the bind address (`0.0.0.0`), not the Host header, which sent login/logout to

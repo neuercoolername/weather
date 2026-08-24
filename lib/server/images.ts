@@ -1,5 +1,6 @@
 import "server-only";
 
+import { types } from "node:util";
 import sharp from "sharp";
 
 // Uploads arrive as whatever came off the camera — a 15MB, 4032x3024 phone frame is
@@ -30,8 +31,12 @@ export const ALLOWED_TYPES = new Set([
 
 const HEIC_TYPES = new Set(["image/heic", "image/heif"]);
 
+/** Everything is stored as WebP, so the encode and the upload agree on one type. */
+export const STORED_CONTENT_TYPE = "image/webp";
+
 export interface ProcessedImage {
-  data: Buffer;
+  /** sharp's buffer, unmodified. Upload it through `blobFor`, never directly. */
+  data: Uint8Array;
   width: number;
   height: number;
   bytes: number;
@@ -90,5 +95,45 @@ export async function processUpload(
     width: info.width,
     height: info.height,
     bytes: data.length,
+  };
+}
+
+/**
+ * Wraps the encoded bytes for upload.
+ *
+ * `supabase-js` puts whatever it is handed straight onto a `fetch` body, and a typed array goes
+ * through fetch's `BufferSource` conversion. Inside the Alpine container that conversion rejects
+ * sharp's buffer with "ArrayBuffer: SharedArrayBuffer is not allowed"; the same bytes convert
+ * fine on glibc and from plain Node, so it cannot be reproduced outside production. A Blob takes
+ * a different branch of the body handling and skips the conversion entirely.
+ *
+ * That branch also posts the Blob as one part of a `FormData`, where supabase-js never applies its
+ * `contentType` option — passing one alongside would look meaningful and do nothing. The type set
+ * here is what the object is stored as, which is why callers pass no options.
+ */
+export function blobFor(image: ProcessedImage): Blob {
+  // `BlobPart` wants a view over a real ArrayBuffer, while TS types every Uint8Array over
+  // `ArrayBufferLike`, which includes SharedArrayBuffer. sharp never returns one.
+  return new Blob([image.data as unknown as BlobPart], {
+    type: STORED_CONTENT_TYPE,
+  });
+}
+
+/**
+ * The body's shape at the moment an upload failed. The storage error reports only that `fetch`
+ * refused it, and by the time it surfaces the buffer is gone — so if `blobFor` turns out not to be
+ * enough, this is the evidence the next attempt hinges on. `isShared` disagreeing with
+ * `isArrayBuffer` would mean a bundled `util.types` misclassifying an externally allocated buffer.
+ */
+export function describeBytes({ data }: ProcessedImage) {
+  return {
+    ctor: data.constructor.name,
+    bufferCtor: data.buffer.constructor.name,
+    isShared: types.isSharedArrayBuffer(data.buffer),
+    isArrayBuffer: data.buffer instanceof ArrayBuffer,
+    byteLength: data.byteLength,
+    byteOffset: data.byteOffset,
+    bufferByteLength: data.buffer.byteLength,
+    runtime: `${process.platform}/${process.arch}`,
   };
 }

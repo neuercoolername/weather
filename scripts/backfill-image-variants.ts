@@ -11,7 +11,7 @@
  * the source makes a 2000px q80 WebP the only copy of that photo that exists.
  */
 import { PrismaClient } from "@prisma/client";
-import { processUpload } from "../lib/server/images";
+import { processUpload, blobFor } from "../lib/server/images";
 import { assertTargetsAgree } from "../lib/server/env-guard";
 import { getSupabase, bucket } from "../lib/server/supabase";
 
@@ -82,7 +82,7 @@ async function main() {
 
       const { error: uploadError } = await getSupabase().storage
         .from(bucket())
-        .upload(newKey, processed.data, { contentType: "image/webp" });
+        .upload(newKey, blobFor(processed));
 
       if (uploadError) throw uploadError;
 

@@ -44,11 +44,26 @@ export async function signedUrlsFor(
       console.error("Supabase signing error:", error);
     }
 
+    const unsigned: string[] = [];
+
     for (const entry of data ?? []) {
       // createSignedUrls reports per-item failures inline rather than throwing.
-      if (!entry.signedUrl || !entry.path) continue;
+      if (!entry.signedUrl || !entry.path) {
+        if (entry.path) unsigned.push(entry.path);
+        continue;
+      }
       cache.set(entry.path, { url: entry.signedUrl, cachedAt: now });
       resolved.set(entry.path, entry.signedUrl);
+    }
+
+    // Silently dropping these renders a blank frame with nothing to go on, and the likeliest
+    // cause is a bucket that does not hold these keys — a mis-set SUPABASE_BUCKET blanks every
+    // image at once.
+    if (unsigned.length > 0) {
+      console.error(
+        `Could not sign ${unsigned.length} key(s) in bucket "${bucket()}":`,
+        unsigned.slice(0, 5)
+      );
     }
   }
 

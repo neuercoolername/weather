@@ -92,7 +92,7 @@ No schema change. Already nullable. Edited in place (overwrite).
 ## Storage
 
 ### Supabase Storage
-- New bucket: `intersection-images`
+- Buckets: `intersection-images` (production) and `intersection-images-dev` (development), selected by `SUPABASE_BUCKET`
 - Private bucket (not public) — access via signed URLs only
 - Server-side uploads using the service role key
 - Storage path convention: `intersections/<intersectionId>/<uuid>.<ext>`
@@ -267,7 +267,7 @@ storefront.
 
 1. Schema migration: add `IntersectionImage` table
 2. Install deps: `iron-session`, `@supabase/supabase-js` (if not already present)
-3. Create Supabase bucket `intersection-images` (private)
+3. Create the Supabase buckets `intersection-images` and `intersection-images-dev`, both private
 4. Set env vars: `ADMIN_PASSWORD`, `SESSION_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`
 5. Implement auth layer (middleware, login page, login/logout routes)
 6. Implement list view

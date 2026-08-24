@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/server/prisma";
 import { getSupabase, bucket } from "@/lib/server/supabase";
-import { processUpload, IMAGE_CONFIG, ALLOWED_TYPES } from "@/lib/server/images";
+import {
+  processUpload,
+  blobFor,
+  describeBytes,
+  IMAGE_CONFIG,
+  ALLOWED_TYPES,
+} from "@/lib/server/images";
 import { targetsDisagree } from "@/lib/server/env-guard";
 
 export async function POST(
@@ -71,10 +77,10 @@ export async function POST(
 
   const { error: uploadError } = await getSupabase()
     .storage.from(bucket())
-    .upload(storageKey, processed.data, { contentType: "image/webp" });
+    .upload(storageKey, blobFor(processed));
 
   if (uploadError) {
-    console.error("Supabase upload error:", uploadError);
+    console.error("Supabase upload error:", uploadError, describeBytes(processed));
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 
