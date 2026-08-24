@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/server/prisma";
 import { getSupabase, BUCKET } from "@/lib/server/supabase";
 import { processUpload, IMAGE_CONFIG, ALLOWED_TYPES } from "@/lib/server/images";
+import { targetsDisagree } from "@/lib/server/env-guard";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const conflict = targetsDisagree("image upload");
+  if (conflict) {
+    console.error(conflict);
+    return NextResponse.json({ error: conflict }, { status: 503 });
+  }
+
   const { id } = await params;
   const intersectionId = Number(id);
 

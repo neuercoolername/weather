@@ -11,7 +11,8 @@ self-crossings is added by hand through the admin CMS.
 
 ## Stack
 - **Framework**: Next.js (App Router)
-- **Database**: PostgreSQL via Prisma
+- **Database**: PostgreSQL via Prisma. Production is Supabase; local development runs `postgres:17`
+  from `docker-compose.yml` on port 5433, seeded from a nightly backup.
 - **Weather data**: Open-Meteo API
 - **Testing**: Vitest (unit only, fully mocked — no DB or network)
 - **iOS**: Expo Go (GPS tracking only)
@@ -282,10 +283,36 @@ Limits worth knowing:
   pipeline, but only after `verify` passes.
 - The image is tagged `:latest` only, so there is no rollback target and the server's `pull` is not
   pinned to the image the run just built.
-- Migrations are applied *after* the image is pushed, and never against a non-prod database.
+- Migrations are applied *after* the image is pushed.
+- `backup.yml` writes to a GitHub artifact, so the backup lives with the same vendor as the repo
+  and covers Postgres only — never the Storage bucket.
 
 Other workflows: `backup.yml` (nightly `pg_dump` to an artifact, 90-day retention),
-`baseline.yml` (one-shot `migrate resolve`, manual dispatch).
+`baseline.yml` (one-shot `migrate resolve`, manual dispatch), and `run-script.yml`
+(manual dispatch, the only sanctioned way to run a script against production).
+
+---
+
+## Environments
+
+`.env` holds local development values; `.env.prod` holds production ones and is never loaded
+implicitly. The name is deliberate: Next auto-loads `.env.$(NODE_ENV).local`, so
+`.env.production.local` would be read during `npm run build`.
+
+`lib/server/env-guard.ts` is what actually enforces the split, because env-file precedence differs
+across Next, the Prisma CLI, and `tsx` — it inspects the *resolved* URLs rather than trusting which
+file won. (Empirically: constructing `PrismaClient` is what loads `.env` for scripts.)
+
+- **`assertNotProduction`** — refuses unless the database is local. `ALLOW_PROD=1` unlocks it, and
+  `run-script.yml` is the only place that is set. `scripts/reset-trace.ts` passes
+  `allowOverride: false`, so nothing unlocks it there.
+- **`assertTargetsAgree` / `targetsDisagree`** — refuses writes when the database and the storage
+  bucket point at different environments. Rows and blobs sit behind two separate credentials, so a
+  local database paired with the production bucket would let a small local row set delete real
+  objects. Guards the image upload and delete routes and `backfill-image-variants --apply`.
+
+There is no local Storage stack yet, so `SUPABASE_URL` stays pointed at production during local
+development: images render, and every write is refused by the mismatch rule.
 
 ---
 

@@ -38,16 +38,35 @@ Copy `.env.example` to `.env` and fill it in:
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | image storage; server-only, never exposed to the client |
 
 ```
+npm run db:up    # local Postgres (docker compose)
 npm run dev      # local server
 npm test         # vitest
 npm run build    # production build
 ```
 
-Schema changes go through `npx prisma migrate dev --name <description>`, and the generated SQL is committed alongside the code. `prisma db push` is not used on this project.
+### databases
+
+`.env` points at the local development database from `docker-compose.yml`; production credentials live in `.env.prod` and are loaded explicitly, never by default. The name matters — `.env.production.local` would be picked up automatically by `npm run build`, `.env.prod` is not.
+
+```
+npm run db:up                        # start it (waits for healthy)
+npm run db:restore -- backup.dump    # load a production dump into it
+npm run db:psql                      # a shell on it
+npm run db:reset                     # destroy the volume and start clean
+```
+
+Seed it from a real backup: grab an artifact from the *Daily DB Backup* workflow with `gh run download`, then `npm run db:restore -- <path>`. Only the `public` schema is restored — Supabase's own schemas belong to the platform, not the app.
+
+Image blobs have no local equivalent yet, so `SUPABASE_URL` stays pointed at production. Images therefore render locally but cannot be written: `lib/server/env-guard.ts` refuses any write whose database and storage bucket disagree, which is what stops a local row set from deleting real objects.
+
+Schema changes go through `npx prisma migrate dev --name <description>` against the local database, and the generated SQL is committed alongside the code. `prisma db push` is not used on this project.
+
+**Writing to production** happens in exactly two places: `prisma migrate deploy` on merge to `main`, and the manually dispatched *Run production script* workflow, which is the only thing that sets `ALLOW_PROD=1`. `reset-trace` is local-only and no override unlocks it.
 
 **Deploy** — pushing to `main` runs `.github/workflows/deploy.yml`: it builds the Docker image and pushes it to `ghcr.io/neuercoolername/weather:latest`, applies `prisma migrate deploy`, then pulls and restarts the container on the server over a cloudflared SSH tunnel. A separate workflow takes a daily `pg_dump` backup.
 
 ### scripts
 
 - `npm run backfill:trace` — computes trace points for snapshots that predate the trace
-- `npm run reset-trace` — deletes all trace points and intersections
+- `npm run backfill:images` — re-encodes images stored before the upload pipeline; dry by default, `-- --apply` to write
+- `npm run reset-trace` — deletes all trace points and intersections, cascading to every image row and hand-written text. Local only, prints row counts, and demands a typed confirmation.

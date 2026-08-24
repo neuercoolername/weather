@@ -1,0 +1,24 @@
+# Local development database only. Production runs from a separate compose file on the server
+# (infra-repo/docker-compose.yml) and has nothing to do with this one.
+services:
+  db:
+    image: postgres:17
+    container_name: weather-dev-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: weather
+      POSTGRES_PASSWORD: weather
+      POSTGRES_DB: weather
+    ports:
+      # 5433 on the host, so this cannot collide with a Postgres already listening on 5432.
+      - "5433:5432"
+    volumes:
+      - weather-dev-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U weather -d weather"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  weather-dev-db:

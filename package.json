@@ -10,6 +10,11 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d --wait",
+    "db:restore": "bash scripts/db-restore.sh",
+    "db:psql": "docker compose exec db psql -U weather -d weather",
     "backfill:trace": "tsx --tsconfig tsconfig.scripts.json scripts/backfill-trace.ts",
     "backfill:images": "tsx --tsconfig tsconfig.scripts.json scripts/backfill-image-variants.ts",
     "reset-trace": "tsx --tsconfig tsconfig.scripts.json scripts/reset-trace.ts"

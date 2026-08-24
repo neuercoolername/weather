@@ -1,0 +1,93 @@
+name: Run production script
+
+# The only sanctioned path for a script to write to production. `ALLOW_PROD` is set here and
+# nowhere else, so the guards in lib/server/env-guard.ts refuse everywhere else by default.
+# `reset-trace` is deliberately absent and could not run even if it were added.
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: Script to run
+        required: true
+        type: choice
+        options:
+          - backfill-images
+          - backfill-trace
+      apply:
+        description: Write changes (leave unchecked for a dry run)
+        type: boolean
+        default: false
+      confirm:
+        description: Type the script name again to confirm
+        required: true
+        type: string
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # Configure this environment with a required reviewer — that approval gate is what makes
+    # this a mechanism rather than a habit.
+    environment: production
+
+    steps:
+      - name: Check confirmation
+        env:
+          SCRIPT: ${{ inputs.script }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "$CONFIRM" != "$SCRIPT" ]; then
+            echo "::error::confirmation '$CONFIRM' does not match selected script '$SCRIPT'"
+            exit 1
+          fi
+
+      - name: Reject a write-only script dispatched as a dry run
+        env:
+          SCRIPT: ${{ inputs.script }}
+          APPLY: ${{ inputs.apply }}
+        run: |
+          # backfill-trace has no dry-run mode; running it always writes. Refuse rather than
+          # let "apply: false" imply a safety it does not have.
+          if [ "$SCRIPT" = "backfill-trace" ] && [ "$APPLY" != "true" ]; then
+            echo "::error::backfill-trace has no dry-run mode — re-dispatch with apply checked"
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run script
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ALLOW_PROD: "1"
+          SCRIPT: ${{ inputs.script }}
+          APPLY: ${{ inputs.apply }}
+        run: |
+          set -euo pipefail
+          FLAGS=()
+          # `[ ... ] && FLAGS+=(...)` would exit the step under `set -e` whenever the test is
+          # false, because the && is the last command on the line.
+          if [ "$APPLY" = "true" ]; then
+            FLAGS+=(--apply)
+          fi
+
+          case "$SCRIPT" in
+            backfill-images) npm run backfill:images -- "${FLAGS[@]}" ;;
+            backfill-trace)  npm run backfill:trace ;;
+            *) echo "::error::unknown script '$SCRIPT'"; exit 1 ;;
+          esac

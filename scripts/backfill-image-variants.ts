@@ -13,6 +13,7 @@
 import { PrismaClient } from "@prisma/client";
 import { createClient } from "@supabase/supabase-js";
 import { processUpload } from "../lib/server/images";
+import { assertTargetsAgree } from "../lib/server/env-guard";
 
 const prisma = new PrismaClient();
 const supabase = createClient(
@@ -60,6 +61,10 @@ async function main() {
     );
     return;
   }
+
+  // Rows come from the database and blobs from the bucket; if those point at different
+  // environments, --delete-originals would remove real objects behind a local row set.
+  assertTargetsAgree("backfill-image-variants --apply");
 
   let done = 0;
   let failed = 0;
@@ -120,7 +125,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error(`\n${e instanceof Error ? e.message : e}\n`);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());

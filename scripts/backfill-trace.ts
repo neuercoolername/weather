@@ -1,10 +1,13 @@
 import { PrismaClient } from "@prisma/client";
 import { computeTracePoint } from "../lib/domain/trace-geometry";
 import { detectAndStoreIntersections } from "../lib/server/data/intersection-detection";
+import { assertNotProduction } from "../lib/server/env-guard";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  assertNotProduction("backfill-trace");
+
   const snapshots = await prisma.weatherSnapshot.findMany({
     where: { tracePoint: null },
     orderBy: { fetchedAt: "asc" },
@@ -45,7 +48,7 @@ async function main() {
 
 main()
   .catch((err) => {
-    console.error("[Backfill] Fatal error:", err);
+    console.error(`\n${err instanceof Error ? err.message : err}\n`);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());
