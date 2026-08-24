@@ -169,6 +169,12 @@ export function groupMarks<T extends Point>(
   return groups;
 }
 
+/** The member a group is identified and opened by: its lowest id. One rule, so the
+ *  ring's key, the crossing named in the header and the one a click opens all agree. */
+export function groupKey<T extends Point>(group: MarkGroup<T>): T {
+  return group.members.reduce((a, b) => (b.id < a.id ? b : a));
+}
+
 /** Radius of the ring drawn for a group: it encloses the group's real footprint,
  *  so it grows with that footprint as you zoom and then the group dissolves. */
 export function groupRadius(group: MarkGroup, markSize: number): number {
@@ -248,16 +254,13 @@ export function openAction(
   params: TraceMarkParams,
   maxScale: number = MAX_SCALE
 ): OpenAction {
-  const first = () =>
-    group.members.reduce((a, b) => (b.id < a.id ? b : a));
-
   if (group.members.length === 1) {
     return { kind: "select", id: group.members[0].id };
   }
 
   const split = splitScale(group, kFit, params);
   if (!Number.isFinite(split) || split > maxScale) {
-    return { kind: "select", id: first().id };
+    return { kind: "select", id: groupKey(group).id };
   }
 
   const xs = group.members.map((m) => m.x);

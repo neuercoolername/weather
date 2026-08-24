@@ -7,12 +7,14 @@ import { createMarkBreathing, type MarkBreathing } from "./mark-breathing";
 import { computeCenterTransform } from "@/lib/domain/trace-viewport";
 import {
   DEFAULT_TRACE_MARK_PARAMS,
+  groupKey,
   groupMarks,
   markMetrics,
   openAction,
   type MarkGroup,
   type TraceMarkParams,
 } from "@/lib/domain/trace-marks";
+import { traceHeadline } from "@/lib/domain/trace-headline";
 import TraceDots from "./TraceDots";
 import IntersectionPanel from "./IntersectionPanel";
 import TraceHeader from "./TraceHeader";
@@ -51,7 +53,8 @@ export default function TraceSVG({
   const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
   const [kFit, setKFit] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
-  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  // The *ring* under the cursor, not a crossing: a ring can hold several.
+  const [hoveredKey, setHoveredKey] = useState<number | null>(null);
 
   const params = useMemo(
     () => ({ ...DEFAULT_TRACE_MARK_PARAMS, ...paramOverrides }),
@@ -110,13 +113,21 @@ export default function TraceSVG({
   );
   const { prevId, nextId } = getNeighbourIds(visibleIntersections, activeId);
   const activeIntersection = intersections.find((ix) => ix.id === activeId) ?? null;
-  const hoveredIntersection = intersections.find((ix) => ix.id === hoveredId) ?? null;
   const tracePath = toSvgPolyline(tracePoints);
 
   // Weights and grouping both key off the zoom *relative to the fitted view*, so the
   // mark:trace ratio is fixed and "full scale" stays meaningful as the trace grows.
   const metrics = markMetrics(transform.k, kFit ?? transform.k, params);
   const groups = groupMarks(visibleIntersections, transform, metrics.markSize, params);
+
+  // The header names what the cursor is on, else what is open, else nothing. The hovered
+  // group is looked up in the *current* groups rather than held in state: grouping is
+  // recomputed every render, so a stored group would go stale as the camera moves. Going
+  // by key also survives a split — the key still belongs to one of the halves.
+  const hoveredGroup = groups.find((g) => groupKey(g).id === hoveredKey) ?? null;
+  const headline = hoveredGroup
+    ? traceHeadline(groupKey(hoveredGroup), hoveredGroup.members.length - 1)
+    : traceHeadline(activeIntersection, 0);
 
   // Hand the current rings to the breathing loop. Re-runs whenever anything that
   // moves or resizes a ring changes; the controller finds them by data attribute.
@@ -132,7 +143,7 @@ export default function TraceSVG({
         phase: Number(el.dataset.markPhase),
       }))
     );
-  }, [transform, activeId, hoveredId, params, visibleIntersections.length]);
+  }, [transform, activeId, hoveredKey, params, visibleIntersections.length]);
 
   // ── Camera ───────────────────────────────────────────────────────────────────
   // Pan the selected intersection to the centre of the visible (non-panel) area.
@@ -199,7 +210,7 @@ export default function TraceSVG({
     [activeId, kFit, params, selectId]
   );
 
-  const handleHover = useCallback((id: number | null) => setHoveredId(id), []);
+  const handleHoverGroup = useCallback((key: number | null) => setHoveredKey(key), []);
   const handleClose = useCallback(() => setActiveId(null), []);
 
   const handlePrev = useCallback(() => {
@@ -215,11 +226,7 @@ export default function TraceSVG({
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
-      <TraceHeader
-        windField={windField}
-        hoveredIntersection={hoveredIntersection}
-        activeIntersection={activeIntersection}
-      />
+      <TraceHeader windField={windField} text={headline} />
 
       <svg
         ref={svgRef}
@@ -249,7 +256,7 @@ export default function TraceSVG({
           params={params}
           activeId={activeId}
           onActivate={handleActivate}
-          onHover={handleHover}
+          onHoverGroup={handleHoverGroup}
         />
       </svg>
 

@@ -177,6 +177,14 @@ gust factor (`TI = (G−1)/3`), a slow direction meander from the 24h circular v
 and length variance that ramps with wind speed (stormy feel). The wind reading drives *motion only* —
 the text is the word **"Trace"** by default, or the crossing's two dates in compact `D/M/YY × D/M/YY`
 form when an intersection is hovered/active.
+
+The headline is the only preview title the trace has: the marks carry no tooltip. A ring holding
+several crossings keeps that same `×` grammar and appends the count of the others —
+`18/4/26 × 18/4/26 +1`. A date *span* was rejected: it names an interval nothing happened over, and
+reads too easily as the `×` form. The crossing named is `groupKey`'s — the lowest id, which is also
+the member `openAction` opens when zoom can never pull the group apart, so in that case the title is
+a promise about the click (`trace-marks.test.ts` pins the two together). Merged titles are hover-only,
+so they never appear on touch, where a tap zooms the ring apart instead.
 - Always animating; pauses when the tab is hidden; single static frame under `prefers-reduced-motion`.
 - Engine is pure + parameterised (`FlowFieldParams`, defaults = the tuned values) so the "feel" stays
   tunable; the canvas component is a thin wrapper. Stencil mask uses Archivo Black (`next/font`).
@@ -226,13 +234,14 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `app/(trace)/page.tsx` — server component (the trace page), fetches trace points + intersections + wind field
 - `app/(trace)/TraceSVG.tsx` — client component, orchestrator
 - `app/(trace)/trace-camera.ts` — d3-zoom controller (`fitScale`, `fit`, `animateTo`, `destroy`)
-- `lib/domain/trace-marks.ts` — `TraceMarkParams`, weight curve, grouping, split scale, open action (pure)
+- `lib/domain/trace-marks.ts` — `TraceMarkParams`, weight curve, grouping, group key, split scale, open action (pure)
 - `app/(trace)/mark-breathing.ts` — rAF controller breathing the marks' radii
 - `lib/domain/flow-field.ts` — pure parameterised wind flow-field engine (Perlin/fBm, curl, Reynolds decomposition, length ramp)
 - `lib/domain/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats)
 - `app/(trace)/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
 - `app/(trace)/flow-field-renderer.ts` — the canvas draw loop the headline component wraps
-- `app/(trace)/TraceHeader.tsx` — chooses header text ("Trace" | compact dates), mounts the flow-field headline
+- `lib/domain/trace-headline.ts` — the header text ("Trace" | `D/M/YY × D/M/YY` | + ` +n`) (pure)
+- `app/(trace)/TraceHeader.tsx` — positions the flow-field headline; takes its text as a prop
 - `app/(trace)/TraceDots.tsx` — the marks layer; one element per group, not per intersection
 - `app/(trace)/IntersectionDot.tsx` — SVG ring + hit area, sized in screen pixels
 - `app/(trace)/IntersectionPanel.tsx` — detail panel (side on desktop, full-screen on mobile)

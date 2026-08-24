@@ -4,6 +4,7 @@ import {
   MAX_SCALE,
   breathingPhase,
   breathingRadius,
+  groupKey,
   groupMarks,
   groupRadius,
   markMetrics,
@@ -250,6 +251,31 @@ describe("openAction", () => {
   it("never asks the camera for more than it can give", () => {
     const action = openAction(group({ id: 1, x: 0, y: 0 }, { id: 2, x: 0.3, y: 0 }), KFIT, P);
     if (action.kind === "zoom") expect(action.k).toBeLessThanOrEqual(MAX_SCALE);
+  });
+
+  // The header names groupKey's crossing. Where a group can never come apart, that title
+  // is a promise about the click — so the two have to pick the same member.
+  it("falls back to the member groupKey names", () => {
+    const g = group({ id: 95, x: 0, y: 0 }, { id: 93, x: 0.011, y: 0 }, { id: 96, x: 0.021, y: 0 });
+    expect(openAction(g, KFIT, P)).toEqual({ kind: "select", id: groupKey(g).id });
+  });
+});
+
+describe("groupKey", () => {
+  it("names the lowest id whatever order the members arrive in", () => {
+    const members = [
+      { id: 96, x: 0, y: 0 },
+      { id: 93, x: 1, y: 0 },
+      { id: 95, x: 2, y: 0 },
+    ];
+    const forwards: MarkGroup = { members, cx: 0, cy: 0, spread: 0 };
+    const backwards: MarkGroup = { members: [...members].reverse(), cx: 0, cy: 0, spread: 0 };
+    expect(groupKey(forwards).id).toBe(93);
+    expect(groupKey(backwards).id).toBe(93);
+  });
+
+  it("names the only member of a lone mark", () => {
+    expect(groupKey({ members: [{ id: 7, x: 0, y: 0 }], cx: 0, cy: 0, spread: 0 }).id).toBe(7);
   });
 });
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   breathingPhase,
+  groupKey,
   groupRadius,
   type MarkGroup,
   type MarkMetrics,
@@ -21,23 +22,23 @@ export default function TraceDots({
   params,
   activeId,
   onActivate,
-  onHover,
+  onHoverGroup,
 }: {
   groups: MarkGroup<IntersectionWithImages>[];
   metrics: MarkMetrics;
   params: TraceMarkParams;
   activeId: number | null;
   onActivate: (group: MarkGroup<IntersectionWithImages>) => void;
-  onHover: (id: number | null) => void;
+  onHoverGroup: (key: number | null) => void;
 }) {
-  // Which ring the cursor is on. Local because it only changes how a ring is drawn —
-  // the header is told about a *crossing*, and only when the ring holds exactly one.
+  // Which ring the cursor is on. Kept locally as well as reported upwards: here it
+  // only changes how the ring is drawn, and it changes on every pointer move.
   const [hoveredKey, setHoveredKey] = useState<number | null>(null);
 
   return (
     <g>
       {groups.map((group) => {
-        const key = group.members.reduce((a, b) => (b.id < a.id ? b : a)).id;
+        const key = groupKey(group).id;
         const isActive = group.members.some((m) => m.id === activeId);
         const isHovered = hoveredKey === key;
 
@@ -64,11 +65,11 @@ export default function TraceDots({
             }}
             onMouseEnter={() => {
               setHoveredKey(key);
-              onHover(group.members.length === 1 ? group.members[0].id : null);
+              onHoverGroup(key);
             }}
             onMouseLeave={() => {
               setHoveredKey(null);
-              onHover(null);
+              onHoverGroup(null);
             }}
           />
         );
