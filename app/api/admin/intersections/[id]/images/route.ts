@@ -5,8 +5,8 @@ import {
   processUpload,
   blobFor,
   describeBytes,
+  sniffImageType,
   IMAGE_CONFIG,
-  ALLOWED_TYPES,
 } from "@/lib/server/images";
 import { targetsDisagree } from "@/lib/server/env-guard";
 
@@ -34,16 +34,23 @@ export async function POST(
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  if (!ALLOWED_TYPES.has(file.type)) {
+  // Size first, on the reported size, so an oversized file is refused before it is buffered.
+  if (file.size > IMAGE_CONFIG.maxBytes) {
     return NextResponse.json(
-      { error: "Unsupported file type" },
+      { error: "File too large (max 15MB)" },
       { status: 400 }
     );
   }
 
-  if (file.size > IMAGE_CONFIG.maxBytes) {
+  const input = Buffer.from(await file.arrayBuffer());
+  const contentType = sniffImageType(input);
+
+  if (!contentType) {
+    console.error(
+      `Rejected upload: no supported format in the bytes (browser reported "${file.type}", ${file.size} bytes)`
+    );
     return NextResponse.json(
-      { error: "File too large (max 15MB)" },
+      { error: "Unsupported file type" },
       { status: 400 }
     );
   }
@@ -61,10 +68,7 @@ export async function POST(
 
   let processed;
   try {
-    processed = await processUpload(
-      Buffer.from(await file.arrayBuffer()),
-      file.type
-    );
+    processed = await processUpload(input, contentType);
   } catch (err) {
     console.error("Image processing error:", err);
     return NextResponse.json(

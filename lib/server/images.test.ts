@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
-import { processUpload, blobFor, IMAGE_CONFIG } from "./images";
+import { processUpload, blobFor, sniffImageType, IMAGE_CONFIG } from "./images";
 
 // Real buffers through the real encoder — the whole point of this module is what sharp
 // actually emits, so stubbing it would test nothing.
@@ -116,6 +116,48 @@ describe("processUpload", () => {
     await expect(
       processUpload(Buffer.from("this is not an image"), "image/jpeg")
     ).rejects.toThrow();
+  });
+});
+
+describe("sniffImageType", () => {
+  function heif(brand: string): Uint8Array {
+    const buf = Buffer.alloc(16);
+    buf.writeUInt32BE(16, 0); // box size
+    buf.write("ftyp", 4, "ascii");
+    buf.write(brand, 8, "ascii");
+    return buf;
+  }
+
+  it("identifies the formats sharp is given", async () => {
+    expect(sniffImageType(await jpeg(20, 20))).toBe("image/jpeg");
+    expect(
+      sniffImageType(await sharp(await jpeg(20, 20)).png().toBuffer())
+    ).toBe("image/png");
+    expect(
+      sniffImageType(await sharp(await jpeg(20, 20)).webp().toBuffer())
+    ).toBe("image/webp");
+  });
+
+  it.each(["heic", "heix", "hevc", "mif1", "msf1"])(
+    "identifies the HEVC-still brand %s",
+    (brand) => {
+      expect(sniffImageType(heif(brand))).toBe("image/heic");
+    }
+  );
+
+  // The whole point: a desktop browser reports "" for .heic, so admission cannot depend on it.
+  it("identifies HEIC regardless of what any client would have called it", () => {
+    expect(sniffImageType(heif("heic"))).toBe("image/heic");
+  });
+
+  it("rejects AVIF, which shares the container but is not supported here", () => {
+    expect(sniffImageType(heif("avif"))).toBeNull();
+  });
+
+  it("rejects anything else, including truncated headers", () => {
+    expect(sniffImageType(Buffer.from("not an image at all"))).toBeNull();
+    expect(sniffImageType(Buffer.from([0xff, 0xd8]))).toBeNull();
+    expect(sniffImageType(Buffer.alloc(0))).toBeNull();
   });
 });
 

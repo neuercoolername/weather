@@ -21,15 +21,52 @@ export const IMAGE_CONFIG: ImageConfig = {
   maxBytes: 15 * 1024 * 1024,
 };
 
-export const ALLOWED_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
+const HEIC_TYPES = new Set(["image/heic", "image/heif"]);
+
+/** ISO base-media brands that mean "HEVC still", as opposed to the AVIF that shares the container. */
+const HEIF_BRANDS = new Set([
+  "heic",
+  "heix",
+  "heim",
+  "heis",
+  "hevc",
+  "hevx",
+  "hevm",
+  "hevs",
+  "mif1",
+  "msf1",
 ]);
 
-const HEIC_TYPES = new Set(["image/heic", "image/heif"]);
+/**
+ * The format according to the bytes, not according to the browser.
+ *
+ * `File.type` is whatever the client chose to report, and for `.heic` on a desktop that is
+ * routinely the empty string — Windows registers no MIME type for it unless the HEIF extension is
+ * installed. Gating on that value rejected real HEICs before anything had read them. Every format
+ * here is identified by its own header instead, and the result is what decides both admission and
+ * which decoder runs.
+ *
+ * Returns null for anything not supported, including AVIF, which shares the HEIF container but is
+ * not something this project accepts today.
+ */
+export function sniffImageType(input: Uint8Array): string | null {
+  const ascii = (start: number, end: number) =>
+    String.fromCharCode(...input.subarray(start, end));
+
+  if (input.length >= 3 && input[0] === 0xff && input[1] === 0xd8 && input[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (input.length >= 8 && ascii(0, 8) === "\x89PNG\r\n\x1a\n") {
+    return "image/png";
+  }
+  if (input.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") {
+    return "image/webp";
+  }
+  if (input.length >= 12 && ascii(4, 8) === "ftyp" && HEIF_BRANDS.has(ascii(8, 12))) {
+    return "image/heic";
+  }
+  return null;
+}
 
 /** Everything is stored as WebP, so the encode and the upload agree on one type. */
 export const STORED_CONTENT_TYPE = "image/webp";

@@ -67,6 +67,11 @@ Image attached to an intersection via the admin CMS.
 - iPhone HEIC is decoded by `heic-convert` before sharp sees it — sharp's bundled libvips ships the
   AV1 codec but not libde265, so it can read AVIF and not HEVC-encoded HEIC. It is slow (seconds per
   frame), which is tolerable only because uploads are admin-only.
+- Which format an upload *is* comes from `sniffImageType`, reading the file's own header, never from
+  the browser's `File.type`. A desktop browser reports `""` for `.heic` — Windows registers no MIME
+  type for it — so gating on that field rejected real HEICs before reading them. The sniffed type
+  also decides whether the `heic-convert` path runs. AVIF shares the HEIF container and is
+  deliberately not accepted.
 - `width`/`height` let the client reserve the exact aspect ratio before the bytes arrive, so images
   no longer shift the layout as they load.
 
