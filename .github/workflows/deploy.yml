@@ -87,4 +87,8 @@ jobs:
           port: 22
           service_token_id: ${{ secrets.SERVICE_TOKEN_ID }}
           service_token_secret: ${{ secrets.SERVICE_TOKEN_SECRET }}
-          commands: docker compose -f /home/david/projects/infra-repo/docker-compose.yml pull weather && docker compose -f /home/david/projects/infra-repo/docker-compose.yml up -d weather
+          # The trailing prune is dangling-only on purpose: pulling `:latest` orphans the previous
+          # image every deploy, and with nothing removing them the server ran out of disk mid-pull.
+          # `-a` would be wrong here — it would also drop images belonging to any service that
+          # happened to be stopped at deploy time.
+          commands: docker compose -f /home/david/projects/infra-repo/docker-compose.yml pull weather && docker compose -f /home/david/projects/infra-repo/docker-compose.yml up -d weather && docker image prune -f

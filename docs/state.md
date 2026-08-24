@@ -296,7 +296,9 @@ Limits worth knowing:
 - `verify` does not run `npm run build` — the Docker build does, so a build break still fails the
   pipeline, but only after `verify` passes.
 - The image is tagged `:latest` only, so there is no rollback target and the server's `pull` is not
-  pinned to the image the run just built.
+  pinned to the image the run just built. Re-tagging also orphans the previous image on every
+  deploy, so the deploy ends with `docker image prune -f` — without it the server's disk fills and
+  the next pull fails part-way through extracting a layer.
 - Migrations are applied *after* the image is pushed.
 - `backup.yml` writes to a GitHub artifact, so the backup lives with the same vendor as the repo
   and covers Postgres only — never the Storage bucket.
