@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/server/prisma";
-import { getSupabase, BUCKET } from "@/lib/server/supabase";
+import { getSupabase, bucket } from "@/lib/server/supabase";
 import { processUpload, IMAGE_CONFIG, ALLOWED_TYPES } from "@/lib/server/images";
 import { targetsDisagree } from "@/lib/server/env-guard";
 
@@ -70,7 +70,7 @@ export async function POST(
   const storageKey = `intersections/${intersectionId}/${crypto.randomUUID()}.webp`;
 
   const { error: uploadError } = await getSupabase()
-    .storage.from(BUCKET)
+    .storage.from(bucket())
     .upload(storageKey, processed.data, { contentType: "image/webp" });
 
   if (uploadError) {
@@ -93,7 +93,7 @@ export async function POST(
     // The row is what makes the blob reachable, so drop the blob if the row never lands
     // (the intersection can be deleted between the check above and this write).
     console.error("Image row creation failed:", err);
-    await getSupabase().storage.from(BUCKET).remove([storageKey]);
+    await getSupabase().storage.from(bucket()).remove([storageKey]);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 }

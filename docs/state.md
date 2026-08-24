@@ -56,7 +56,7 @@ Records when the wind trace crosses itself.
 
 ### `IntersectionImage`
 Image attached to an intersection via the admin CMS.
-- Fields: `id` (cuid), `intersectionId` (FK), `storageKey` (path in Supabase Storage bucket `intersection-images`), `createdAt`,
+- Fields: `id` (cuid), `intersectionId` (FK), `storageKey` (path in the Supabase Storage bucket named by `SUPABASE_BUCKET`), `createdAt`,
   `width` / `height` / `bytes` (nullable — intrinsic size of the stored image)
 - No caption — images stand on their own
 - Blobs stored in Supabase Storage (private bucket); access via server-generated signed URLs
@@ -306,13 +306,19 @@ file won. (Empirically: constructing `PrismaClient` is what loads `.env` for scr
 - **`assertNotProduction`** — refuses unless the database is local. `ALLOW_PROD=1` unlocks it, and
   `run-script.yml` is the only place that is set. `scripts/reset-trace.ts` passes
   `allowOverride: false`, so nothing unlocks it there.
-- **`assertTargetsAgree` / `targetsDisagree`** — refuses writes when the database and the storage
-  bucket point at different environments. Rows and blobs sit behind two separate credentials, so a
-  local database paired with the production bucket would let a small local row set delete real
-  objects. Guards the image upload and delete routes and `backfill-image-variants --apply`.
+- **`assertTargetsAgree` / `targetsDisagree`** — refuses writes unless the database and the bucket
+  are a matching pair: local database with `intersection-images-dev`, production database with
+  `intersection-images`. Both buckets live in the same Supabase project, so the project URL cannot
+  tell them apart and the rule keys on `SUPABASE_BUCKET` instead. An unset bucket resolves to the
+  production name, which keeps the deployed container working without a new variable. Guards the
+  image upload and delete routes and `backfill-image-variants --apply`.
 
-There is no local Storage stack yet, so `SUPABASE_URL` stays pointed at production during local
-development: images render, and every write is refused by the mismatch rule.
+Blobs are remote in development too — only the bucket differs, not the host — so image work needs a
+network connection, and `SUPABASE_SERVICE_ROLE_KEY` is the same key for both buckets because they
+share a project. The guard constrains what the app does with that key; it does not scope the key
+itself. Rows restored from a production dump point at objects in the production bucket and will not
+render against the dev bucket; `signedUrlsFor` skips keys it cannot sign, so the page degrades
+quietly.
 
 ---
 

@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { PROD_BUCKET } from "@/lib/server/env-guard";
+
 let _client: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient {
@@ -14,5 +16,25 @@ export function getSupabase(): SupabaseClient {
   return _client;
 }
 
-export const BUCKET = "intersection-images";
+/**
+ * Development uses a second bucket in the same project, so uploads can be exercised locally
+ * without writing anywhere production reads from. Defaulting to the production name rather than
+ * requiring the variable keeps the deployed container working without a coordinated env change;
+ * `lib/server/env-guard.ts` is what enforces that the bucket matches the database.
+ */
+/**
+ * A function rather than a constant so the environment is read at call time, the way
+ * `getSupabase` already does. Scripts pick `.env` up only as a side effect of constructing
+ * `PrismaClient`, which runs after every import has been evaluated — a module-scope constant would
+ * therefore capture whatever was set before that, and quietly resolve to the production bucket
+ * depending on import order.
+ *
+ * `||` rather than `??`: a blank `SUPABASE_BUCKET=` line is a plausible way to write "unset", and
+ * an empty bucket name would fail every storage call while reading as "not the dev bucket" to the
+ * guard.
+ */
+export function bucket(): string {
+  return process.env.SUPABASE_BUCKET || PROD_BUCKET;
+}
+
 export const SIGNED_URL_EXPIRY = 86400;

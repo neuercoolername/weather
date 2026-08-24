@@ -57,7 +57,9 @@ npm run db:reset                     # destroy the volume and start clean
 
 Seed it from a real backup: grab an artifact from the *Daily DB Backup* workflow with `gh run download`, then `npm run db:restore -- <path>`. Only the `public` schema is restored — Supabase's own schemas belong to the platform, not the app.
 
-Image blobs have no local equivalent yet, so `SUPABASE_URL` stays pointed at production. Images therefore render locally but cannot be written: `lib/server/env-guard.ts` refuses any write whose database and storage bucket disagree, which is what stops a local row set from deleting real objects.
+Image blobs live in Supabase Storage, in two buckets inside the same project: `intersection-images-dev` for development and `intersection-images` for production, selected by `SUPABASE_BUCKET`. `lib/server/env-guard.ts` enforces the pairing — the local database goes with the dev bucket, the production database with the production bucket — and refuses any write across the two, which is what stops a local row set from deleting real objects. Unset resolves to the production bucket, so the deployed container needs no new variable.
+
+One consequence of restoring a production dump locally: those rows reference objects in the *production* bucket, so their images will not render against the dev bucket. Signing skips keys it cannot resolve, so the page degrades quietly rather than erroring. Upload fresh images locally to see the full path.
 
 Schema changes go through `npx prisma migrate dev --name <description>` against the local database, and the generated SQL is committed alongside the code. `prisma db push` is not used on this project.
 

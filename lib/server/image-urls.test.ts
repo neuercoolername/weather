@@ -6,7 +6,7 @@ vi.mock("@/lib/server/supabase", () => ({
   getSupabase: () => ({
     storage: { from: () => ({ createSignedUrls: mockCreateSignedUrls }) },
   }),
-  BUCKET: "intersection-images",
+  bucket: () => "intersection-images",
   SIGNED_URL_EXPIRY: 86400,
 }));
 

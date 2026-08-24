@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/server/prisma";
-import { getSupabase, BUCKET } from "@/lib/server/supabase";
+import { getSupabase, bucket } from "@/lib/server/supabase";
 import { targetsDisagree } from "@/lib/server/env-guard";
 
 type Params = { params: Promise<{ id: string; imageId: string }> };
@@ -24,7 +24,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   const { error: storageError } = await getSupabase().storage
-    .from(BUCKET)
+    .from(bucket())
     .remove([image.storageKey]);
 
   if (storageError) {

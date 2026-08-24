@@ -2,28 +2,33 @@ import { describe, it, expect } from "vitest";
 import {
   isLocalUrl,
   isLocalDatabase,
-  isLocalStorage,
+  isDevStorage,
   assertNotProduction,
   assertTargetsAgree,
+  DEV_BUCKET,
+  PROD_BUCKET,
   type EnvTargets,
 } from "@/lib/server/env-guard";
 
 const LOCAL_DB = "postgresql://weather:weather@localhost:5433/weather";
-const LOCAL_STORAGE = "http://127.0.0.1:54321";
 const PROD_DB =
   "postgresql://user:pw@aws-1-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
-const PROD_STORAGE = "https://abcdefgh.supabase.co";
+// Both buckets live in the same project, so the URL is identical either way — the bucket name
+// is the only thing separating development from production.
+const SUPABASE_URL = "https://abcdefgh.supabase.co";
 
 const local: EnvTargets = {
   DATABASE_URL: LOCAL_DB,
   DIRECT_URL: LOCAL_DB,
-  SUPABASE_URL: LOCAL_STORAGE,
+  SUPABASE_URL,
+  SUPABASE_BUCKET: DEV_BUCKET,
 };
 
 const prod: EnvTargets = {
   DATABASE_URL: PROD_DB,
   DIRECT_URL: PROD_DB,
-  SUPABASE_URL: PROD_STORAGE,
+  SUPABASE_URL,
+  SUPABASE_BUCKET: PROD_BUCKET,
 };
 
 describe("isLocalUrl", () => {
@@ -33,7 +38,7 @@ describe("isLocalUrl", () => {
     ["http://[::1]:54321", true],
     ["http://host.docker.internal:54321", true],
     [PROD_DB, false],
-    [PROD_STORAGE, false],
+    [SUPABASE_URL, false],
     // A hostname that merely contains "localhost" is not local.
     ["https://localhost.evil.example.com", false],
   ])("%s → %s", (url, expected) => {
@@ -63,11 +68,14 @@ describe("isLocalDatabase", () => {
   });
 });
 
-describe("isLocalStorage", () => {
-  it("reads SUPABASE_URL", () => {
-    expect(isLocalStorage(local)).toBe(true);
-    expect(isLocalStorage(prod)).toBe(false);
-    expect(isLocalStorage({})).toBe(false);
+describe("isDevStorage", () => {
+  it("recognises only the development bucket", () => {
+    expect(isDevStorage(local)).toBe(true);
+    expect(isDevStorage(prod)).toBe(false);
+  });
+
+  it("treats an unset bucket as production, since that is what the default resolves to", () => {
+    expect(isDevStorage({})).toBe(false);
   });
 });
 
@@ -112,29 +120,35 @@ describe("assertNotProduction", () => {
 });
 
 describe("assertTargetsAgree", () => {
-  it("allows both local", () => {
+  it("allows the local database with the development bucket", () => {
     expect(() => assertTargetsAgree("upload", local)).not.toThrow();
   });
 
-  it("allows both production", () => {
+  it("allows the production database with the production bucket", () => {
     expect(() => assertTargetsAgree("upload", prod)).not.toThrow();
   });
 
   it("refuses a local database paired with the production bucket", () => {
     expect(() =>
-      assertTargetsAgree("upload", { ...local, SUPABASE_URL: PROD_STORAGE })
-    ).toThrow(/disagree/);
+      assertTargetsAgree("upload", { ...local, SUPABASE_BUCKET: PROD_BUCKET })
+    ).toThrow(/not a matching pair/);
   });
 
-  it("refuses a production database paired with a local bucket", () => {
+  it("refuses a production database paired with the development bucket", () => {
     expect(() =>
-      assertTargetsAgree("upload", { ...prod, SUPABASE_URL: LOCAL_STORAGE })
-    ).toThrow(/disagree/);
+      assertTargetsAgree("upload", { ...prod, SUPABASE_BUCKET: DEV_BUCKET })
+    ).toThrow(/not a matching pair/);
   });
 
-  it("treats unset storage as production, so a local database disagrees", () => {
+  it("refuses a local database when the bucket is unset and defaults to production", () => {
     expect(() =>
-      assertTargetsAgree("upload", { ...local, SUPABASE_URL: undefined })
-    ).toThrow(/disagree/);
+      assertTargetsAgree("upload", { ...local, SUPABASE_BUCKET: undefined })
+    ).toThrow(/not a matching pair/);
+  });
+
+  it("names both sides so the message says which pair was wrong", () => {
+    expect(() =>
+      assertTargetsAgree("upload", { ...local, SUPABASE_BUCKET: PROD_BUCKET })
+    ).toThrow(/localhost:5433[\s\S]*intersection-images/);
   });
 });

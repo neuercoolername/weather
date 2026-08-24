@@ -11,16 +11,11 @@
  * the source makes a 2000px q80 WebP the only copy of that photo that exists.
  */
 import { PrismaClient } from "@prisma/client";
-import { createClient } from "@supabase/supabase-js";
 import { processUpload } from "../lib/server/images";
 import { assertTargetsAgree } from "../lib/server/env-guard";
+import { getSupabase, bucket } from "../lib/server/supabase";
 
 const prisma = new PrismaClient();
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-const BUCKET = "intersection-images";
 
 const APPLY = process.argv.includes("--apply");
 const DELETE_ORIGINALS = process.argv.includes("--delete-originals");
@@ -71,8 +66,8 @@ async function main() {
 
   for (const img of pending) {
     try {
-      const { data, error } = await supabase.storage
-        .from(BUCKET)
+      const { data, error } = await getSupabase().storage
+        .from(bucket())
         .download(img.storageKey);
 
       if (error || !data) throw error ?? new Error("empty download");
@@ -85,8 +80,8 @@ async function main() {
 
       const newKey = `intersections/${img.intersectionId}/${crypto.randomUUID()}.webp`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
+      const { error: uploadError } = await getSupabase().storage
+        .from(bucket())
         .upload(newKey, processed.data, { contentType: "image/webp" });
 
       if (uploadError) throw uploadError;
@@ -104,7 +99,7 @@ async function main() {
       });
 
       if (DELETE_ORIGINALS) {
-        await supabase.storage.from(BUCKET).remove([img.storageKey]);
+        await getSupabase().storage.from(bucket()).remove([img.storageKey]);
       }
 
       const saved = (1 - processed.bytes / original.length) * 100;

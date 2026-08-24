@@ -23,6 +23,5 @@
 
 *Testing*
 - [ ] **Integration tests** — no integration test infrastructure yet. Would catch convention-mismatch bugs (computation vs. rendering) that unit tests miss. Needs a test harness that can assert on rendered output or at minimum on the full computation→DB→query pipeline.
-- [ ] **Local image storage** — the local database covers Postgres, but there is no local equivalent of the Supabase Storage bucket, so `SUPABASE_URL` still points at production and every image write is refused by the mismatch guard. Options: `supabase start` for the full local stack (Postgres + Storage + Studio, several containers), or a second free Supabase project. Until then the image pipeline cannot be exercised end-to-end outside production.
 - [ ] **Off-site backups** — `backup.yml` writes to a GitHub artifact, so the only copy of the data lives with the same vendor as the repo and expires after 90 days. Storage blobs are not backed up at all.
 - [ ] **E2E tests**

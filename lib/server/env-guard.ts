@@ -20,10 +20,23 @@ const LOCAL_HOSTNAMES = new Set([
 /** Escape hatch for the one caller allowed to write to production: the dispatch workflow. */
 const OVERRIDE = "ALLOW_PROD";
 
+/**
+ * The two buckets, by name. Both live in the same Supabase project, so the project URL cannot tell
+ * them apart — the name is the only signal, which is why the pairing rule below keys on it rather
+ * than on the host.
+ *
+ * Deliberately constants and not environment variables. `SUPABASE_BUCKET` says which bucket to
+ * use; these say which one is which. Reading both from the environment would let a caller declare
+ * whatever it is already using to be the development bucket, and the check would certify itself.
+ */
+export const DEV_BUCKET = "intersection-images-dev";
+export const PROD_BUCKET = "intersection-images";
+
 export interface EnvTargets {
   DATABASE_URL?: string;
   DIRECT_URL?: string;
   SUPABASE_URL?: string;
+  SUPABASE_BUCKET?: string;
   ALLOW_PROD?: string;
 }
 
@@ -48,8 +61,9 @@ export function isLocalDatabase(env: EnvTargets = currentEnv()): boolean {
   return isLocalUrl(env.DATABASE_URL) && isLocalUrl(env.DIRECT_URL);
 }
 
-export function isLocalStorage(env: EnvTargets = currentEnv()): boolean {
-  return isLocalUrl(env.SUPABASE_URL);
+/** Anything that is not explicitly the development bucket counts as production. */
+export function isDevStorage(env: EnvTargets = currentEnv()): boolean {
+  return env.SUPABASE_BUCKET === DEV_BUCKET;
 }
 
 function hostOf(url: string | undefined): string {
@@ -64,7 +78,7 @@ function hostOf(url: string | undefined): string {
 export function describeTargets(env: EnvTargets = currentEnv()): string {
   return (
     `  database: ${hostOf(env.DATABASE_URL)} (direct: ${hostOf(env.DIRECT_URL)})\n` +
-    `  storage:  ${hostOf(env.SUPABASE_URL)}`
+    `  storage:  ${hostOf(env.SUPABASE_URL)} bucket "${env.SUPABASE_BUCKET || PROD_BUCKET}"`
   );
 }
 
@@ -93,23 +107,24 @@ export function assertNotProduction(
 }
 
 /**
- * Refuse when the database and the storage bucket disagree.
+ * Refuse when the database and the bucket are not a matching pair: the local database goes with
+ * the development bucket, the production database with the production bucket.
  *
- * Rows and blobs are two halves of one record behind two separate credentials, so a local
- * database paired with the production bucket lets a run read a small local row set and delete
- * the real objects behind it. Reads are unaffected — only call this before writing.
+ * Rows and blobs are two halves of one record, so a local database paired with the production
+ * bucket lets a run read a small local row set and delete the real objects behind it. Reads are
+ * unaffected — only call this before writing.
  */
 export function targetsDisagree(
   action: string,
   env: EnvTargets = currentEnv()
 ): string | null {
-  if (isLocalDatabase(env) === isLocalStorage(env)) return null;
+  if (isLocalDatabase(env) === isDevStorage(env)) return null;
 
   return (
-    `Refusing to run "${action}" — the database and storage bucket disagree.\n` +
+    `Refusing to run "${action}" — the database and the bucket are not a matching pair.\n` +
     `${describeTargets(env)}\n\n` +
-    `Writes would apply to one environment while reading the other. Point both at the same ` +
-    `place before continuing.`
+    `A local database goes with the "${DEV_BUCKET}" bucket, and the production database with the ` +
+    `production bucket. Writes would otherwise apply to one environment while reading the other.`
   );
 }
 

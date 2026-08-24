@@ -11,7 +11,7 @@ vi.mock("@/lib/server/prisma", () => ({
 
 vi.mock("@/lib/server/supabase", () => ({
   getSupabase: vi.fn(),
-  BUCKET: "intersection-images",
+  bucket: () => "intersection-images",
   SIGNED_URL_EXPIRY: 3600,
 }));
 

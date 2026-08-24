@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getSupabase, BUCKET, SIGNED_URL_EXPIRY } from "@/lib/server/supabase";
+import { getSupabase, bucket, SIGNED_URL_EXPIRY } from "@/lib/server/supabase";
 
 /**
  * Signed URLs for stored images, batched into one call and held across renders.
@@ -37,7 +37,7 @@ export async function signedUrlsFor(
 
   if (misses.length > 0) {
     const { data, error } = await getSupabase()
-      .storage.from(BUCKET)
+      .storage.from(bucket())
       .createSignedUrls(misses, SIGNED_URL_EXPIRY);
 
     if (error) {
