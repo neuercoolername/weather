@@ -8,8 +8,8 @@ const crossing = (a: string, b: string): HeadlineCrossing => ({
 
 describe("traceHeadline", () => {
   it("falls back to the trace's own name when nothing is pointed at", () => {
-    expect(traceHeadline(null, 0)).toBe("Trace");
-    expect(traceHeadline(null, 3)).toBe("Trace");
+    expect(traceHeadline(null, 0)).toBe("Wind");
+    expect(traceHeadline(null, 3)).toBe("Wind");
   });
 
   it("names a lone crossing by its two dates", () => {

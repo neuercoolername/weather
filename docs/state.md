@@ -180,7 +180,7 @@ the letterforms, faint outside) instead of plain type. The turbulence is a synth
 statistics match the real wind reading: mean flow from direction + speed, turbulence intensity from the
 gust factor (`TI = (G−1)/3`), a slow direction meander from the 24h circular variance, a gust "pulse",
 and length variance that ramps with wind speed (stormy feel). The wind reading drives *motion only* —
-the text is the word **"Trace"** by default, or the crossing's two dates in compact `D/M/YY × D/M/YY`
+the text is the word **"Wind"** by default, or the crossing's two dates in compact `D/M/YY × D/M/YY`
 form when an intersection is hovered/active.
 
 The headline is the only preview title the trace has: the marks carry no tooltip. A ring holding
@@ -245,7 +245,7 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `lib/domain/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats)
 - `app/(trace)/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
 - `app/(trace)/flow-field-renderer.ts` — the canvas draw loop the headline component wraps
-- `lib/domain/trace-headline.ts` — the header text ("Trace" | `D/M/YY × D/M/YY` | + ` +n`) (pure)
+- `lib/domain/trace-headline.ts` — the header text ("Wind" | `D/M/YY × D/M/YY` | + ` +n`) (pure)
 - `app/(trace)/TraceHeader.tsx` — positions the flow-field headline; takes its text as a prop
 - `app/(trace)/TraceDots.tsx` — the marks layer; one element per group, not per intersection
 - `app/(trace)/IntersectionDot.tsx` — SVG ring + hit area, sized in screen pixels

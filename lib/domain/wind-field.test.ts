@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeWindField, type WindReading } from "./wind-field";
+import { compass8Index, computeWindField, type WindReading } from "./wind-field";
 
 describe("computeWindField", () => {
   it("returns null for empty or unusable input", () => {
@@ -55,5 +55,28 @@ describe("computeWindField", () => {
     ])!;
     expect(spread.meanderDeg).toBeGreaterThan(steady.meanderDeg);
     expect(spread.meanderDeg).toBeLessThanOrEqual(38); // capped
+  });
+});
+
+describe("compass8Index", () => {
+  it("indexes each of the 8 points at its exact bearing", () => {
+    // 0 = N, 1 = NE, 2 = E, 3 = SE, 4 = S, 5 = SW, 6 = W, 7 = NW
+    expect([0, 45, 90, 135, 180, 225, 270, 315].map(compass8Index)).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7,
+    ]);
+  });
+
+  it("snaps to the nearest point, rounding the half-sector up", () => {
+    expect(compass8Index(22.5)).toBe(1); // NE
+    expect(compass8Index(22.4)).toBe(0); // N
+    expect(compass8Index(44)).toBe(1);
+    expect(compass8Index(337.5)).toBe(0); // wraps past 360 back to N
+    expect(compass8Index(359)).toBe(0);
+  });
+
+  it("wraps bearings outside 0..360", () => {
+    expect(compass8Index(-45)).toBe(7); // NW
+    expect(compass8Index(450)).toBe(2); // E
+    expect(compass8Index(-360)).toBe(0);
   });
 });

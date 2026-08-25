@@ -27,6 +27,15 @@ const clamp = (x: number, a: number, b: number) => (x < a ? a : x > b ? b : x);
 const D2R = Math.PI / 180;
 
 /**
+ * Index of the nearest of the 8 major compass points, clockwise from N —
+ * 0 = N, 1 = NE, 2 = E, and so on. Multiply by 45 for the snapped bearing.
+ */
+export function compass8Index(deg: number): number {
+  const norm = ((deg % 360) + 360) % 360;
+  return Math.round(norm / 45) % 8;
+}
+
+/**
  * Compute the flow-field parameters from a window of hourly readings.
  * Returns null when there's no usable data.
  */

@@ -15,7 +15,7 @@ function formatCompactDate(d: Date): string {
 }
 
 /**
- * `null` → "Trace"; a crossing → "D/M/YY × D/M/YY"; plus " +n" when `extra`
+ * `null` → "Wind"; a crossing → "D/M/YY × D/M/YY"; plus " +n" when `extra`
  * further crossings sit behind it in the same ring.
  *
  * A merged ring keeps the crossing grammar rather than reporting its date span:
@@ -24,7 +24,7 @@ function formatCompactDate(d: Date): string {
  * always names the one a click on that ring can actually open.
  */
 export function traceHeadline(crossing: HeadlineCrossing | null, extra: number): string {
-  if (!crossing) return "Trace";
+  if (!crossing) return "Wind";
 
   const a = formatCompactDate(crossing.tracePointA.snapshot.fetchedAt);
   const b = formatCompactDate(crossing.tracePointB.snapshot.fetchedAt);

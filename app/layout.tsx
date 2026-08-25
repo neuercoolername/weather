@@ -15,7 +15,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "weather",
+  title: "Wind",
   description: "Current weather conditions",
 };
 
