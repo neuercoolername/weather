@@ -81,6 +81,10 @@ Image attached to an intersection via the admin CMS.
 
 ### Weather fetching ✅
 Hourly cron fetches Open-Meteo data and stores a snapshot (`instrumentation.ts` → `lib/server/cron.ts`).
+The schedule does not start against a local database — `instrumentation.ts` runs under `next dev`
+too, and a dev tick writes an invented snapshot and mails a real notification about it. The check is
+`isLocalDatabase`, not `NODE_ENV`, and defaults to *on*: production needs no new variable, since an
+unset one there would stop ingest silently. `WEATHER_CRON=1` runs it locally anyway.
 
 ### Wind trace ✅
 Computes and stores trace points on each new snapshot.
@@ -151,6 +155,8 @@ future direction).
 ### Intersection email notification ✅
 Sends a plain-text email via Resend when a new intersection is detected.
 Fire-and-forget — a failed send never breaks the weather-fetch cycle.
+Refuses to send at all when the database is local, which covers a script and a cron unlocked with
+`WEATHER_CRON=1`: the credentials and recipient are the real ones wherever the trace came from.
 Reply-to address is pre-set to `trace+<id>@<domain>` for future inbound handling.
 Email includes a direct link to the admin CMS detail page (`BASE_URL/admin/intersections/<id>`).
 Requires env vars: `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM`, `BASE_URL`.
@@ -357,6 +363,8 @@ file won. (Empirically: constructing `PrismaClient` is what loads `.env` for scr
 - **`assertNotProduction`** — refuses unless the database is local. `ALLOW_PROD=1` unlocks it, and
   `run-script.yml` is the only place that is set. `scripts/reset-trace.ts` passes
   `allowOverride: false`, so nothing unlocks it there.
+- **`isLocalDatabase`** — the underlying test, also read directly by `cron.ts` and `email.ts` to
+  decide whether this process may reach the outside world at all (see Weather fetching).
 - **`assertTargetsAgree` / `targetsDisagree`** — refuses writes unless the database and the bucket
   are a matching pair: local database with `intersection-images-dev`, production database with
   `intersection-images`. Both buckets live in the same Supabase project, so the project URL cannot

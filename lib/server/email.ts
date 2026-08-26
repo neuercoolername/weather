@@ -2,6 +2,7 @@ import "server-only";
 
 import { Resend } from "resend";
 import { formatDate } from "@/lib/domain/format-date";
+import { isLocalDatabase } from "@/lib/server/env-guard";
 
 let _resend: Resend | null = null;
 function getResend(): Resend {
@@ -23,6 +24,14 @@ export async function sendIntersectionEmail({
   dateA: Date;
   dateB: Date;
 }): Promise<void> {
+  // The crossing is in the local trace, but the credentials and the recipient are the real ones,
+  // so a send from here is a genuine notification about invented data. Braces to the cron's belt:
+  // this also covers a script, and a cron deliberately unlocked with WEATHER_CRON=1.
+  if (isLocalDatabase()) {
+    console.log(`[Email] Local database — not sending for Intersection #${id}.`);
+    return;
+  }
+
   const from = process.env.EMAIL_FROM!;
   const to = process.env.NOTIFICATION_EMAIL!;
   // BASE_URL is an origin, no path — tolerate a trailing slash.

@@ -2,9 +2,23 @@ import "server-only";
 
 import cron from "node-cron";
 import { prisma } from "@/lib/server/prisma";
+import { describeTargets, isLocalDatabase } from "@/lib/server/env-guard";
 import { fetchAndStoreWeather } from "@/lib/server/weather-ingest";
 
+/** Runs the schedule against a local database anyway. */
+const LOCAL_OVERRIDE = "WEATHER_CRON";
+
 export function startWeatherCron(): void {
+  // Keys on the resolved database rather than NODE_ENV, and defaults to *on*: production needs no
+  // new variable, because an unset one there would stop ingest and a stalled trace fails silently.
+  if (isLocalDatabase() && process.env[LOCAL_OVERRIDE] !== "1") {
+    console.log(
+      `[WeatherCron] Local database — not scheduling.\n${describeTargets()}\n` +
+        `Set ${LOCAL_OVERRIDE}=1 to run the hourly fetch against it.`
+    );
+    return;
+  }
+
   console.log("[WeatherCron] Initializing hourly weather fetch schedule");
 
   cron.schedule("0 * * * *", async () => {
