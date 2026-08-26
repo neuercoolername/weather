@@ -5,7 +5,9 @@
 # Usage: npm run db:restore -- path/to/backup.dump
 #
 # The dump comes from the "Daily DB Backup" workflow (pg_dump -Fc against DIRECT_URL); fetch one
-# with `gh run download --name db-backup-<run-id>`. Only the `public` schema is restored — that is
+# with `gh run download --name db-backup-<run-id>`. Those artifacts are GPG-encrypted, and a
+# `.gpg` argument is decrypted here with $BACKUP_PASSPHRASE (prompted for if unset). Only the
+# `public` schema is restored — that is
 # where every application table lives. Supabase's own schemas (auth, storage, ...) are skipped:
 # they belong to the hosted platform, not to this app, and nothing local reads them.
 #
@@ -25,6 +27,18 @@ fi
 if [[ ! -f "$DUMP" ]]; then
   echo "no such file: $DUMP" >&2
   exit 1
+fi
+
+if [[ "$DUMP" == *.gpg ]]; then
+  PLAIN="$(mktemp)"
+  trap 'rm -f "$PLAIN"' EXIT
+  echo "==> Decrypting $DUMP"
+  if [[ -n "${BACKUP_PASSPHRASE:-}" ]]; then
+    gpg --batch --yes --quiet --decrypt --passphrase "$BACKUP_PASSPHRASE" -o "$PLAIN" "$DUMP"
+  else
+    gpg --batch --yes --quiet --decrypt -o "$PLAIN" "$DUMP"
+  fi
+  DUMP="$PLAIN"
 fi
 
 if ! docker compose ps --status running --services | grep -qx db; then

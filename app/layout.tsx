@@ -16,7 +16,7 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Wind",
-  description: "Current weather conditions",
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({

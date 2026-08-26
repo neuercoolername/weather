@@ -174,6 +174,34 @@ Single-password admin interface at `/admin/*` for editing intersection text and 
   one — so it builds one from the forwarded/Host headers (`sameOriginUrl`).
 - Key files: `proxy.ts` (Next 16 middleware), `lib/server/auth/redirect.ts`, `lib/server/auth/session-config.ts`, `lib/server/auth/session.ts`, `lib/server/supabase.ts`, `lib/server/auth/rate-limit.ts`, `app/admin/`
 
+### Public access gate ✅
+The trace at `/` sits behind a shared viewer password (`VIEWER_PASSWORD`), separate from
+`ADMIN_PASSWORD` so a read-only link can be handed out without the CMS. It reuses the admin
+machinery wholesale: the same `iron-session` cookie carrying a second flag (`isViewer`), the same
+brute-force limiter, the same host-correct redirects. Admin implies viewer; viewer never implies
+admin.
+
+The rules are a pure function, `accessFor` (`lib/domain/access.ts`), returning
+`allow | viewer-login | admin-login | unauthorized`; `proxy.ts` is only the shell that unseals the
+cookie and turns a verdict into a response.
+
+`/api/location` must never be gated — the iOS app authenticates with a `Bearer` header and holds no
+cookie, so gating it stops GPS ingest, and nothing about a stalled trace fails loudly. It is kept
+out of the middleware matcher *and* named in `accessFor`'s always-open set, with a test pinning it.
+The matcher lists gated paths explicitly instead of sweeping the site with exclusions, which means a
+future public route must be added there or it ships ungated.
+
+The gate fails closed: an unset `VIEWER_PASSWORD` refuses everyone rather than admitting everyone.
+The variable lives in the server's compose file, outside this repo, so it must be set there *before*
+a deploy carries the gate to production.
+
+### Search indexing ✅
+Blocked two ways, because neither is sufficient alone: `app/robots.ts` disallows all crawlers, which
+stops new crawling but also stops a crawler ever *seeing* a `noindex` — so an already-indexed URL
+would linger. The `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet` header from
+`next.config.ts` is the half that de-lists, and applies to every response rather than only HTML.
+`app/layout.tsx` carries the metadata equivalent for the page itself.
+
 ### Flow-field headline ✅
 The `/` header text is rendered as an animated wind **quiver** (short direction strokes, dense inside
 the letterforms, faint outside) instead of plain type. The turbulence is a synthetic field whose
@@ -254,7 +282,10 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `components/ImageFrame.tsx` — shared image element: reserves the aspect ratio up front and
   cross-fades a hairline frame into the loaded image. The only component outside `app/`, because
   both the trace panel and the admin editor use it.
-- `proxy.ts` — Next 16 middleware guarding `/admin/*` and `/api/admin/*`
+- `lib/domain/access.ts` — `accessFor`, the pure access rules for every gated path
+- `proxy.ts` — Next 16 middleware guarding `/` and `/admin/*`; the shell around `accessFor`
+- `app/viewer-login/page.tsx`, `app/api/viewer-login/route.ts` — the viewer password form and check
+- `app/robots.ts` — disallow-all, paired with the `X-Robots-Tag` header in `next.config.ts`
 - `app/api/location/route.ts` — POST endpoint receiving GPS coordinates from iOS app
 - `app/api/admin/login/route.ts`, `app/api/admin/logout/route.ts` — admin auth
 - `app/api/admin/intersections/[id]/route.ts` — PATCH intersection text
@@ -301,7 +332,11 @@ Limits worth knowing:
   the next pull fails part-way through extracting a layer.
 - Migrations are applied *after* the image is pushed.
 - `backup.yml` writes to a GitHub artifact, so the backup lives with the same vendor as the repo
-  and covers Postgres only — never the Storage bucket.
+  and covers Postgres only — never the Storage bucket. The dump is GPG-encrypted
+  (`BACKUP_PASSPHRASE`) before upload: this repository is public, and artifacts on a public
+  repository are listable by anyone and downloadable by any authenticated GitHub user, while the
+  dump holds every intersection text. `scripts/db-restore.sh` decrypts a `.gpg` argument on the way
+  in.
 
 Other workflows: `backup.yml` (nightly `pg_dump` to an artifact, 90-day retention),
 `baseline.yml` (one-shot `migrate resolve`, manual dispatch), and `run-script.yml`

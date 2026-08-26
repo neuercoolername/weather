@@ -10,7 +10,7 @@ A personal weather display. An iOS app posts my GPS coordinates to this server; 
 4. **Wind trace** — each observation appends a point by displacing from the last position by wind direction (degrees) and wind speed (km/h). Stored as `TracePoint`; the origin is `(0, 0)` and the units are km/h, not geographic. The new segment is then tested against every prior segment, and any crossing is stored as an `Intersection`.
 5. **Email** — a new intersection sends a plain-text notification via Resend with a direct link to that intersection's admin page. Fire-and-forget: a failed send never breaks the weather cycle.
 6. **Writing** — the text and images on an intersection are written by hand in the admin CMS at `/admin/intersections`. Only intersections that have writing or images get a mark on the public trace; the rest stay part of the line.
-7. **`/`** — the whole accumulated path as one SVG line, with zoom and pan. The line's stroke and the crossing marks come off the same curve, so they hold the same weight at every zoom; marks that crowd together collapse into one ring, and clicking it travels in until the group comes apart. Clicking a single mark pans it to centre and opens a panel with the two dates, the writing, and any images (full-screen on mobile). The header is not type but an animated wind field — a quiver of short strokes whose statistics come from the last 24 hours of real readings. The favicon is one of the header's own tapered strokes, blown up to fill the tile and snapped to one of the 8 major compass points: the same 24-hour mean direction, tapering the way the wind blows.
+7. **`/`** — the whole accumulated path as one SVG line, with zoom and pan. The line's stroke and the crossing marks come off the same curve, so they hold the same weight at every zoom; marks that crowd together collapse into one ring, and clicking it travels in until the group comes apart. Clicking a single mark pans it to centre and opens a panel with the two dates, the writing, and any images (full-screen on mobile). The header is not type but an animated wind field — a quiver of short strokes whose statistics come from the last 24 hours of real readings. The favicon is one of the header's own tapered strokes, blown up to fill the tile and snapped to one of the 8 major compass points: the same 24-hour mean direction, tapering the way the wind blows. The page sits behind a shared viewer password — separate from the CMS login, so a read-only link can be handed out without the CMS — and the site is excluded from search indexing.
 
 ## stack
 
@@ -35,6 +35,7 @@ Copy `.env.example` to `.env` and fill it in:
 | `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM` | intersection notification email |
 | `BASE_URL` | origin only — **no path, no trailing slash**, or every emailed admin link 404s |
 | `ADMIN_PASSWORD`, `SESSION_SECRET` | admin CMS login (session secret must be 32+ chars) |
+| `VIEWER_PASSWORD` | password for the public trace; the gate fails closed, so an unset value locks everyone out |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | image storage; server-only, never exposed to the client |
 
 ```
@@ -65,7 +66,7 @@ Schema changes go through `npx prisma migrate dev --name <description>` against 
 
 **Writing to production** happens in exactly two places: `prisma migrate deploy` on merge to `main`, and the manually dispatched *Run production script* workflow, which is the only thing that sets `ALLOW_PROD=1`. `reset-trace` is local-only and no override unlocks it.
 
-**Deploy** — pushing to `main` runs `.github/workflows/deploy.yml`: it builds the Docker image and pushes it to `ghcr.io/neuercoolername/weather:latest`, applies `prisma migrate deploy`, then pulls and restarts the container on the server over a cloudflared SSH tunnel. A separate workflow takes a daily `pg_dump` backup.
+**Deploy** — pushing to `main` runs `.github/workflows/deploy.yml`: it builds the Docker image and pushes it to `ghcr.io/neuercoolername/weather:latest`, applies `prisma migrate deploy`, then pulls and restarts the container on the server over a cloudflared SSH tunnel. A separate workflow takes a daily `pg_dump` backup, GPG-encrypted with `BACKUP_PASSPHRASE` before upload — this repository is public, and a plain artifact would put every intersection text within reach of any authenticated GitHub user. `npm run db:restore -- backup.dump.gpg` decrypts on the way in.
 
 ### scripts
 
