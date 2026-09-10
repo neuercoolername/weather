@@ -22,7 +22,7 @@ interface OpenMeteoResponse {
 }
 
 const REQUEST_TIMEOUT_MS = 15_000;
-const RETRY_DELAYS_MS = [30_000, 60_000];
+const RETRY_DELAYS_MS = [30_000, 60_000, 120_000, 240_000];
 
 class OpenMeteoResponseError extends Error {
   constructor(readonly status: number, statusText: string) {

@@ -74,9 +74,10 @@ describe("fetchAndStoreWeather", () => {
       vi.useRealTimers();
     });
 
-    it("retries after 30s then 60s on a 503, and succeeds if a later attempt succeeds", async () => {
+    it("retries with growing backoff on a 503, and succeeds if a later attempt succeeds", async () => {
       const fetchMock = vi
         .fn()
+        .mockResolvedValueOnce(errorResponse(503, "Service Unavailable"))
         .mockResolvedValueOnce(errorResponse(503, "Service Unavailable"))
         .mockResolvedValueOnce(errorResponse(503, "Service Unavailable"))
         .mockResolvedValueOnce(jsonResponse(mockWeatherData));
@@ -90,6 +91,9 @@ describe("fetchAndStoreWeather", () => {
 
       await vi.advanceTimersByTimeAsync(60_000);
       expect(fetchMock).toHaveBeenCalledTimes(3);
+
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(fetchMock).toHaveBeenCalledTimes(4);
 
       await promise;
       expect(prisma.weatherSnapshot.create).toHaveBeenCalledTimes(1);
@@ -114,7 +118,7 @@ describe("fetchAndStoreWeather", () => {
       expect(prisma.weatherSnapshot.create).toHaveBeenCalledTimes(1);
     });
 
-    it("gives up after exhausting retries, leaving the last snapshot active", async () => {
+    it("gives up after exhausting all 4 retries, leaving the last snapshot active", async () => {
       const fetchMock = vi.fn().mockResolvedValue(errorResponse(503, "Service Unavailable"));
       vi.stubGlobal("fetch", fetchMock);
 
@@ -123,9 +127,11 @@ describe("fetchAndStoreWeather", () => {
 
       await vi.advanceTimersByTimeAsync(30_000);
       await vi.advanceTimersByTimeAsync(60_000);
+      await vi.advanceTimersByTimeAsync(120_000);
+      await vi.advanceTimersByTimeAsync(240_000);
 
       await assertion;
-      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock).toHaveBeenCalledTimes(5);
       expect(prisma.weatherSnapshot.create).not.toHaveBeenCalled();
     });
   });
