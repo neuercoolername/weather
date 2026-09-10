@@ -21,7 +21,24 @@ interface OpenMeteoResponse {
   };
 }
 
-async function fetchWeather(lat: number, lon: number): Promise<unknown> {
+const REQUEST_TIMEOUT_MS = 15_000;
+const RETRY_DELAYS_MS = [30_000, 60_000];
+
+class OpenMeteoResponseError extends Error {
+  constructor(readonly status: number, statusText: string) {
+    super(`Open-Meteo API returned ${status}: ${statusText}`);
+  }
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWeatherOnce(lat: number, lon: number): Promise<unknown> {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(lat));
   url.searchParams.set("longitude", String(lon));
@@ -42,11 +59,38 @@ async function fetchWeather(lat: number, lon: number): Promise<unknown> {
   );
   url.searchParams.set("timezone", "auto");
 
-  const response = await fetch(url.toString());
-  if (!response.ok) {
-    throw new Error(`Open-Meteo API returned ${response.status}: ${response.statusText}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(url.toString(), { signal: controller.signal });
+    if (!response.ok) {
+      throw new OpenMeteoResponseError(response.status, response.statusText);
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
   }
-  return response.json();
+}
+
+async function fetchWeather(lat: number, lon: number): Promise<unknown> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetchWeatherOnce(lat, lon);
+    } catch (error) {
+      const retryable = !(error instanceof OpenMeteoResponseError) || isRetryableStatus(error.status);
+      if (!retryable || attempt >= RETRY_DELAYS_MS.length) {
+        throw error;
+      }
+      const delayMs = RETRY_DELAYS_MS[attempt];
+      console.warn(
+        `[WeatherCron] ${new Date().toISOString()} — Open-Meteo request failed (attempt ${attempt + 1}/${
+          RETRY_DELAYS_MS.length + 1
+        }), retrying in ${delayMs / 1000}s...`,
+        error
+      );
+      await sleep(delayMs);
+    }
+  }
 }
 
 async function storeSnapshot(locationId: number, data: OpenMeteoResponse) {
