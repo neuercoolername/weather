@@ -203,6 +203,23 @@ The gate fails closed: an unset `VIEWER_PASSWORD` refuses everyone rather than a
 The variable lives in the server's compose file, outside this repo, so it must be set there *before*
 a deploy carries the gate to production.
 
+### Time-of-day backdrop ✅
+A quiet, alive background for the trace page: eight near-white atmospheric gradients (dawn/morning/
+midday/afternoon/evening/dusk/night/late-night), each with its own slow "breathe" pulse, chosen by
+the tracked location's real *current* local hour — not the viewer's browser clock. Open-Meteo is
+already called with `timezone=auto`, so every snapshot's `rawJson.timezone` is enough to resolve
+"now" at the location via `Intl.DateTimeFormat` (same pattern as `format-date.ts`), with no ingest
+change needed. Bucket hours and colors are a stylization of that real hour, not a sunrise/sunset
+model — the schema has no such field.
+
+The breathe animation (`scale`/`filter: brightness` pulse, 12-22s depending on bucket) runs on its
+own fixed, `z-index: -1` layer behind all content, not as a `filter` on a content-bearing element —
+a CSS `filter` paints everything inside the element it's on. Rendered from `app/(trace)/page.tsx`
+only (both the normal and empty-trace branches); admin and viewer-login are unaffected.
+- Key files: `lib/domain/time-of-day.ts` (`resolveTimeOfDay`, `DEFAULT_TIME_OF_DAY_CONFIG`),
+  `lib/server/data/time-of-day.ts` (`getCurrentTimeOfDay`), `app/(trace)/TimeOfDayBackdrop.tsx`,
+  `app/globals.css` (`.time-of-day-backdrop`, `@keyframes time-of-day-breathe`).
+
 ### Search indexing ✅
 Blocked two ways, because neither is sufficient alone: `app/robots.ts` disallows all crawlers, which
 stops new crawling but also stops a crawler ever *seeing* a `noindex` — so an already-indexed URL
@@ -290,6 +307,10 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `components/ImageFrame.tsx` — shared image element: reserves the aspect ratio up front and
   cross-fades a hairline frame into the loaded image. The only component outside `app/`, because
   both the trace panel and the admin editor use it.
+- `lib/domain/time-of-day.ts` — `resolveTimeOfDay`, `DEFAULT_TIME_OF_DAY_CONFIG` (pure)
+- `lib/server/data/time-of-day.ts` — `getCurrentTimeOfDay` (latest snapshot's timezone → current
+  local hour → bucket)
+- `app/(trace)/TimeOfDayBackdrop.tsx` — the fixed, non-interactive breathing backdrop layer
 - `lib/domain/access.ts` — `accessFor`, the pure access rules for every gated path
 - `proxy.ts` — Next 16 middleware guarding `/` and `/admin/*`; the shell around `accessFor`
 - `app/viewer-login/page.tsx`, `app/api/viewer-login/route.ts` — the viewer password form and check

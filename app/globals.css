@@ -20,3 +20,33 @@ body {
      inline tokens aren't emitted as :root variables. */
   font-family: var(--font-literata), Georgia, "Times New Roman", serif;
 }
+
+/* Time-of-day backdrop (app/(trace)/TimeOfDayBackdrop.tsx). Fixed and z-indexed behind
+   everything, with its own breathing animation, so it never affects the trace or headline's
+   own brightness — a `filter` on body itself would paint over its children too. */
+.time-of-day-backdrop {
+  position: fixed;
+  inset: -8%;
+  z-index: -1;
+  animation-name: time-of-day-breathe;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes time-of-day-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.018);
+    filter: brightness(1.035);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .time-of-day-backdrop {
+    animation: none;
+  }
+}
