@@ -58,6 +58,8 @@ export default function TraceDots({
             radius={resting * growth}
             strokeWidth={stroke}
             hitRadius={Math.max(params.hitRadius, resting)}
+            // Only a hovered or open ring breathes — a resting mark stays put.
+            breathing={isActive || isHovered}
             phase={breathingPhase(group.members[0].tracePointA.snapshot.fetchedAt, params)}
             onClick={(e) => {
               e.stopPropagation();

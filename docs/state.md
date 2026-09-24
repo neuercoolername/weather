@@ -127,9 +127,11 @@ box overshoots and throws the other members off screen. A group that cannot come
 zoom range opens the first of its members instead; only one place in the trace needs this, where
 three crossings sit within 0.02 units of each other and would want `k ≈ 470`.
 
-Marks breathe on the flow-field headline's gust period, with the per-mark phase taken from the
-crossing's own `fetchedAt`. The loop is an imperative controller (`mark-breathing.ts`) that writes
-`r` directly on the circles, so animation never travels through React state; it pauses on
+A hovered or open ring breathes on the flow-field headline's gust period, with the per-mark phase
+taken from the crossing's own `fetchedAt`; a resting ring stays static. The loop is an imperative
+controller (`mark-breathing.ts`) that writes `r` directly on the circles, so animation never
+travels through React state — `TraceDots` only lets a hovered/active ring carry the data
+attributes the controller looks for, so a resting ring is never in its animated set. It pauses on
 `visibilitychange` and never starts under `prefers-reduced-motion`, leaving the resting radius.
 
 Two camera bugs fixed alongside: `scaleExtent` had a fixed lower bound (0.1) sitting *above* the
