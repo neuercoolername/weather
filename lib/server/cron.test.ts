@@ -48,7 +48,7 @@ describe("startWeatherCron", () => {
 
     startWeatherCron();
 
-    expect(schedule).toHaveBeenCalledWith("0 * * * *", expect.any(Function));
+    expect(schedule).toHaveBeenCalledWith("7 * * * *", expect.any(Function));
   });
 
   it("schedules against production without any opt-in", () => {
@@ -58,7 +58,7 @@ describe("startWeatherCron", () => {
 
     startWeatherCron();
 
-    expect(schedule).toHaveBeenCalledWith("0 * * * *", expect.any(Function));
+    expect(schedule).toHaveBeenCalledWith("7 * * * *", expect.any(Function));
   });
 
   it("schedules when the database is only half local", () => {
