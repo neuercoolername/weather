@@ -21,7 +21,7 @@ export function startWeatherCron(): void {
 
   console.log("[WeatherCron] Initializing hourly weather fetch schedule");
 
-  cron.schedule("0 * * * *", async () => {
+  cron.schedule("7 * * * *", async () => {
     const now = new Date().toISOString();
 
     const location = await prisma.location.findFirst({
@@ -47,5 +47,5 @@ export function startWeatherCron(): void {
     }
   });
 
-  console.log("[WeatherCron] Scheduled: every hour at minute 0");
+  console.log("[WeatherCron] Scheduled: every hour at minute 7");
 }
