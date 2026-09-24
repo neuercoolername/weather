@@ -11,6 +11,7 @@ import {
 } from "@/lib/domain/trace-marks";
 import type { IntersectionWithImages } from "@/lib/server/data/intersections";
 import IntersectionDot from "./IntersectionDot";
+import { useRingShapes } from "./ring-shapes";
 
 // The interactive marks layer. One element per *group*, not per intersection:
 // where crossings crowd together they collapse into a single ring enclosing the
@@ -34,6 +35,7 @@ export default function TraceDots({
   // Which ring the cursor is on. Kept locally as well as reported upwards: here it
   // only changes how the ring is drawn, and it changes on every pointer move.
   const [hoveredKey, setHoveredKey] = useState<number | null>(null);
+  const ringShape = useRingShapes(params.ringShape);
 
   return (
     <g>
@@ -56,6 +58,9 @@ export default function TraceDots({
             sx={group.cx}
             sy={group.cy}
             radius={resting * growth}
+            // A group wears its key member's ring, so it keeps its shape while zooming
+            // until that member splits off.
+            shape={ringShape(key)}
             strokeWidth={stroke}
             hitRadius={Math.max(params.hitRadius, resting)}
             // Only a hovered or open ring breathes — a resting mark stays put.

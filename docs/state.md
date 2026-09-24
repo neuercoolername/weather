@@ -129,10 +129,19 @@ three crossings sit within 0.02 units of each other and would want `k ≈ 470`.
 
 A hovered or open ring breathes on the flow-field headline's gust period, with the per-mark phase
 taken from the crossing's own `fetchedAt`; a resting ring stays static. The loop is an imperative
-controller (`mark-breathing.ts`) that writes `r` directly on the circles, so animation never
+controller (`mark-breathing.ts`) that writes each ring's scale directly, so animation never
 travels through React state — `TraceDots` only lets a hovered/active ring carry the data
 attributes the controller looks for, so a resting ring is never in its animated set. It pauses on
 `visibilitychange` and never starts under `prefers-reduced-motion`, leaving the resting radius.
+
+Each ring is hand-drawn (`lib/domain/mark-shape.ts`, knobs in `TraceMarkParams.ringShape`): a
+unit-radius path scaled to the ring's radius with a non-scaling stroke, so one path serves every
+size and breathing only changes the scale. Rings mix four pen styles by weight (overshoot, gap,
+closed, multi-pass); open strokes get a lead-in, a flick-off, a slow wander and a sliding centre so
+passes are neither parallel nor concentric. Shapes are random per page load, not derived from data,
+and cached per crossing id (`ring-shapes.ts`); a group wears its key member's ring, so it keeps its
+shape while zooming until that member splits off. The server cannot know the random shapes, so the
+first render draws unit circles and the rings switch to their hand-drawn paths after hydration.
 
 Two camera bugs fixed alongside: `scaleExtent` had a fixed lower bound (0.1) sitting *above* the
 real fit scale, so the first wheel event clamped the zoom up and the whole trace could never be
@@ -293,7 +302,9 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `app/(trace)/TraceSVG.tsx` — client component, orchestrator
 - `app/(trace)/trace-camera.ts` — d3-zoom controller (`fitScale`, `fit`, `animateTo`, `destroy`)
 - `lib/domain/trace-marks.ts` — `TraceMarkParams`, weight curve, grouping, group key, split scale, open action (pure)
-- `app/(trace)/mark-breathing.ts` — rAF controller breathing the marks' radii
+- `app/(trace)/mark-breathing.ts` — rAF controller breathing the marks' radii (as a scale)
+- `lib/domain/mark-shape.ts` — hand-drawn ring generator: `RingShapeParams`, style weights, unit-radius path (pure)
+- `app/(trace)/ring-shapes.ts` — per-page-load ring cache per crossing id, unit circle until hydrated
 - `lib/domain/flow-field.ts` — pure parameterised wind flow-field engine (Perlin/fBm, curl, Reynolds decomposition, length ramp)
 - `lib/domain/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats)
 - `app/(trace)/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver

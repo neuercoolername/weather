@@ -10,6 +10,7 @@
 // group's real footprint, so ring size means "how much room this group takes up" and
 // nothing else. See docs/features/trace-marks.
 
+import { DEFAULT_RING_SHAPE_PARAMS, type RingShapeParams } from "./mark-shape";
 import { projectToScreen } from "./trace-viewport";
 
 // ---- tunable "feel" parameters (mirror the tuning bench's panel) ----
@@ -42,6 +43,8 @@ export interface TraceMarkParams {
   pulseFloorPx: number;
   /** breathing period, seconds */
   pulsePeriodSec: number;
+  /** how the hand-drawn ring is drawn (lib/domain/mark-shape) */
+  ringShape: RingShapeParams;
 }
 
 export const DEFAULT_TRACE_MARK_PARAMS: TraceMarkParams = {
@@ -59,6 +62,7 @@ export const DEFAULT_TRACE_MARK_PARAMS: TraceMarkParams = {
   pulseDepth: 0.22,
   pulseFloorPx: 0,
   pulsePeriodSec: 7.4,
+  ringShape: DEFAULT_RING_SHAPE_PARAMS,
 };
 
 /** Upper bound on the camera scale. Shared by the camera and by openAction, so

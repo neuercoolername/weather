@@ -135,9 +135,9 @@ export default function TraceSVG({
     const svg = svgRef.current;
     const breathing = breathingRef.current;
     if (!svg || !breathing) return;
-    const circles = svg.querySelectorAll<SVGCircleElement>("[data-mark-radius]");
+    const rings = svg.querySelectorAll<SVGGraphicsElement>("[data-mark-radius]");
     breathing.setMarks(
-      Array.from(circles).map((el) => ({
+      Array.from(rings).map((el) => ({
         el,
         radius: Number(el.dataset.markRadius),
         phase: Number(el.dataset.markPhase),

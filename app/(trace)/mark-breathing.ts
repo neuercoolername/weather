@@ -1,16 +1,17 @@
 // Imperative breathing loop for the crossing marks — the "external system" a React
 // effect connects to, in the same shape as trace-camera.ts. It owns one rAF loop for
-// every mark on screen and writes the `r` attribute directly, so the animation never
+// every mark on screen and writes each ring's scale directly, so the animation never
 // travels through React state and the camera can keep re-rendering underneath it.
 //
-// React sets each ring's resting radius; this overwrites it each frame. Under
+// Rings are unit-radius paths scaled to their radius. React sets the resting scale;
+// this overwrites it each frame. Under
 // prefers-reduced-motion the loop never starts, which leaves exactly that resting
 // radius on screen — the static frame.
 
 import { breathingRadius, type TraceMarkParams } from "@/lib/domain/trace-marks";
 
 export interface BreathingMark {
-  el: SVGCircleElement;
+  el: SVGGraphicsElement;
   /** resting radius in screen px, already including any hover/active growth */
   radius: number;
   /** per-mark offset so they don't pulse in unison */
@@ -36,8 +37,8 @@ export function createMarkBreathing(params: TraceMarkParams): MarkBreathing {
     const seconds = (now - startedAt) / 1000;
     for (const mark of marks) {
       mark.el.setAttribute(
-        "r",
-        String(breathingRadius(mark.radius, seconds, mark.phase, params))
+        "transform",
+        `scale(${breathingRadius(mark.radius, seconds, mark.phase, params)})`
       );
     }
   };
