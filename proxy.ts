@@ -16,8 +16,6 @@ export async function proxy(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     case "admin-login":
       return loginRedirect(req, "/admin/login", pathname);
-    case "viewer-login":
-      return loginRedirect(req, "/viewer-login", pathname);
   }
 }
 

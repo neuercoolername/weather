@@ -20,14 +20,14 @@ import IntersectionPanel from "./IntersectionPanel";
 import TraceHeader from "./TraceHeader";
 import type { WindField } from "@/lib/domain/wind-field";
 import type { TracePoint } from "@/lib/server/data/trace-points";
-import type { IntersectionWithImages } from "@/lib/server/data/intersections";
+import type { TraceIntersection } from "@/lib/server/data/intersections";
 import { hasContent } from "@/lib/domain/intersection-content";
 import { getNeighbourIds } from "@/lib/domain/trace-neighbours";
 import { toSvgPolyline } from "@/lib/domain/trace-svg-path";
 
 interface Props {
   tracePoints: TracePoint[];
-  intersections: IntersectionWithImages[];
+  intersections: TraceIntersection[];
   windField: WindField | null;
   /** override any of the tuned mark/weight values */
   params?: Partial<TraceMarkParams>;
@@ -109,7 +109,7 @@ export default function TraceSVG({
 
   // ── Derived from props + selection ───────────────────────────────────────────
   const visibleIntersections = intersections.filter((ix) =>
-    hasContent(ix.text, ix.images.length)
+    hasContent(ix.text)
   );
   const { prevId, nextId } = getNeighbourIds(visibleIntersections, activeId);
   const activeIntersection = intersections.find((ix) => ix.id === activeId) ?? null;
@@ -184,7 +184,7 @@ export default function TraceSVG({
   // A mark can stand for several crossings, so what a click means depends on whether
   // zooming can take the group apart — openAction decides, and it is pure.
   const handleActivate = useCallback(
-    (group: MarkGroup<IntersectionWithImages>) => {
+    (group: MarkGroup<TraceIntersection>) => {
       const camera = cameraRef.current;
       const action = openAction(group, kFit ?? transformRef.current.k, params);
 

@@ -9,7 +9,7 @@ import {
   type MarkMetrics,
   type TraceMarkParams,
 } from "@/lib/domain/trace-marks";
-import type { IntersectionWithImages } from "@/lib/server/data/intersections";
+import type { TraceIntersection } from "@/lib/server/data/intersections";
 import IntersectionDot from "./IntersectionDot";
 import { useRingShapes } from "./ring-shapes";
 
@@ -25,11 +25,11 @@ export default function TraceDots({
   onActivate,
   onHoverGroup,
 }: {
-  groups: MarkGroup<IntersectionWithImages>[];
+  groups: MarkGroup<TraceIntersection>[];
   metrics: MarkMetrics;
   params: TraceMarkParams;
   activeId: number | null;
-  onActivate: (group: MarkGroup<IntersectionWithImages>) => void;
+  onActivate: (group: MarkGroup<TraceIntersection>) => void;
   onHoverGroup: (key: number | null) => void;
 }) {
   // Which ring the cursor is on. Kept locally as well as reported upwards: here it

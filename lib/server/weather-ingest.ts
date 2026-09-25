@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/server/prisma";
 import { computeTracePoint } from "@/lib/domain/trace-geometry";
 import { detectAndStoreIntersections } from "@/lib/server/data/intersection-detection";
-import { sendIntersectionEmail } from "@/lib/server/email";
+import { generateHaiku } from "@/lib/server/haiku";
 
 interface OpenMeteoResponse {
   current: {
@@ -123,15 +123,32 @@ async function storeTracePoint(
   return detectAndStoreIntersections(tracePoint.id, snapshotId, prevX, prevY, x, y);
 }
 
+async function generateHaikuFor(intersectionId: number): Promise<void> {
+  const intersection = await prisma.intersection.findUniqueOrThrow({
+    where: { id: intersectionId },
+    select: {
+      tracePointA: { select: { snapshot: { select: { rawJson: true } } } },
+      tracePointB: { select: { snapshot: { select: { rawJson: true } } } },
+    },
+  });
+
+  const text = await generateHaiku(
+    intersection.tracePointA.snapshot.rawJson as object,
+    intersection.tracePointB.snapshot.rawJson as object
+  );
+
+  await prisma.intersection.update({ where: { id: intersectionId }, data: { text } });
+}
+
 export async function processIntersections(
   intersections: { id: number; dateA: Date; dateB: Date }[]
 ): Promise<void> {
   for (const ix of intersections) {
-    console.log(`[Email] Sending email for Intersection #${ix.id}...`);
-    await sendIntersectionEmail(ix)
-      .then(() => console.log(`[Email] Sent for Intersection #${ix.id}`))
+    console.log(`[Haiku] Generating for Intersection #${ix.id}...`);
+    await generateHaikuFor(ix.id)
+      .then(() => console.log(`[Haiku] Saved for Intersection #${ix.id}`))
       .catch((err) =>
-        console.error(`[Email] Failed to send intersection email for Intersection #${ix.id}:`, err)
+        console.error(`[Haiku] Failed to generate for Intersection #${ix.id}:`, err)
       );
   }
 }

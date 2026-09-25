@@ -1,21 +1,27 @@
 # Project State
 
+> This is the `public` branch — the openly-viewable "haiku" deploy. It diverges from `main`
+> (the private, password-gated instance): no viewer gate, no email, no hand-curated text or
+> photos, and every self-crossing gets an LLM-generated haiku instead. See
+> `docs/public-fork.md` for the full rationale and what differs.
+
 ## What this is
-A weather art project. An iOS app posts GPS coordinates to a Next.js server,
-which fetches hourly weather from Open-Meteo and stores snapshots in PostgreSQL.
-The data is both subject and medium — displayed as a minimal public web page.
-The wind trace *is* the public page: `/` renders it, and writing about its
-self-crossings is added by hand through the admin CMS.
+A weather art project. A location is set manually via `/admin/location`, and a Next.js server
+fetches hourly weather from Open-Meteo for it and stores snapshots in PostgreSQL. The data is
+both subject and medium — displayed as a minimal public web page, openly viewable, no login.
+The wind trace *is* the public page: `/` renders it, and each self-crossing gets a haiku written
+by an LLM from the two crossing weather readings.
 
 ---
 
 ## Stack
 - **Framework**: Next.js (App Router)
-- **Database**: PostgreSQL via Prisma. Production is Supabase; local development runs `postgres:17`
-  from `docker-compose.yml` on port 5433, seeded from a nightly backup.
+- **Database**: PostgreSQL via Prisma. Production is self-hosted on the same Docker network as the
+  app (Supabase's free-tier project limit was already hit); local development runs `postgres:17`
+  from `docker-compose.yml`'s `db-public` service, port 5434.
 - **Weather data**: Open-Meteo API
+- **AI**: Anthropic API (`claude-haiku-4-5-20251001`) — writes a haiku per self-crossing intersection
 - **Testing**: Vitest (unit only, fully mocked — no DB or network)
-- **iOS**: Expo Go (GPS tracking only)
 - **Typography**: Literata (reading text, the document default) + IBM Plex Mono (technical meta —
   timestamps, ids), both via `next/font/google`; the flow-field header uses Archivo Black as a stencil.
   Wired in `app/layout.tsx` + `app/globals.css` (body font references the next/font `--font-literata`
@@ -26,7 +32,7 @@ self-crossings is added by hand through the admin CMS.
 ## Schema
 
 ### `Location`
-GPS coordinate posted by the iOS app.
+GPS coordinate, entered manually via `/admin/location` (`POST /api/admin/location`).
 - Fields: `lat`, `lon`, `createdAt`
 - Relations: `snapshots` (1-to-many with `WeatherSnapshot`)
 
@@ -48,32 +54,12 @@ Precomputed (x, y) position for each observation. 1-to-1 with `WeatherSnapshot`.
 Records when the wind trace crosses itself.
 - References two `TracePoint` IDs (not snapshot IDs)
 - Stores crossing coordinates `(x, y)`
-- `text` is nullable, and hand-written in the admin CMS — not generated. An intersection
-  with nothing to show stays part of the line; one with text **or** at least one image gets a
-  dot on the public trace. That rule is `hasContent` (`lib/domain/intersection-content.ts`); the admin
-  "needs content" queue is its inverse, as a Prisma clause in `lib/server/data/admin-intersections.ts`.
-- Relations: `images` (1-to-many with `IntersectionImage`)
-
-### `IntersectionImage`
-Image attached to an intersection via the admin CMS.
-- Fields: `id` (cuid), `intersectionId` (FK), `storageKey` (path in the Supabase Storage bucket named by `SUPABASE_BUCKET`), `createdAt`,
-  `width` / `height` / `bytes` (nullable — intrinsic size of the stored image)
-- No caption — images stand on their own
-- Blobs stored in Supabase Storage (private bucket); access via server-generated signed URLs
-  (`SIGNED_URL_EXPIRY = 86400`, i.e. 24h)
-- Uploads are normalised on the way in by `lib/server/images.ts`: EXIF-oriented, downscaled to a
-  2000px long edge, stripped of metadata and re-encoded as WebP q80. Everything is stored as
-  `.webp` regardless of what was uploaded. Knobs live in `IMAGE_CONFIG`.
-- iPhone HEIC is decoded by `heic-convert` before sharp sees it — sharp's bundled libvips ships the
-  AV1 codec but not libde265, so it can read AVIF and not HEVC-encoded HEIC. It is slow (seconds per
-  frame), which is tolerable only because uploads are admin-only.
-- Which format an upload *is* comes from `sniffImageType`, reading the file's own header, never from
-  the browser's `File.type`. A desktop browser reports `""` for `.heic` — Windows registers no MIME
-  type for it — so gating on that field rejected real HEICs before reading them. The sniffed type
-  also decides whether the `heic-convert` path runs. AVIF shares the HEIF container and is
-  deliberately not accepted.
-- `width`/`height` let the client reserve the exact aspect ratio before the bytes arrive, so images
-  no longer shift the layout as they load.
+- `text` is nullable, and LLM-generated (`lib/server/haiku.ts`) from the two crossing snapshots'
+  `rawJson` — not hand-written. An intersection with nothing to show stays part of the line; one
+  with text gets a dot on the public trace. That rule is `hasContent`
+  (`lib/domain/intersection-content.ts`).
+- No image relation on this branch — `IntersectionImage` was removed entirely (photos are
+  private-only; see `docs/public-fork.md`).
 
 ---
 
@@ -82,7 +68,7 @@ Image attached to an intersection via the admin CMS.
 ### Weather fetching ✅
 Hourly cron fetches Open-Meteo data and stores a snapshot (`instrumentation.ts` → `lib/server/cron.ts`).
 The schedule does not start against a local database — `instrumentation.ts` runs under `next dev`
-too, and a dev tick writes an invented snapshot and mails a real notification about it. The check is
+too, and a dev tick would otherwise write an invented snapshot as if it were real. The check is
 `isLocalDatabase`, not `NODE_ENV`, and defaults to *on*: production needs no new variable, since an
 unset one there would stop ingest silently. `WEATHER_CRON=1` runs it locally anyway.
 
@@ -92,17 +78,18 @@ Detects intersections after each new segment.
 **The trace is the root page** — it lives in the `app/(trace)/` route group: `page.tsx` serves `/`
 (parentheses are excluded from the URL) and its components sit beside it.
 Renders the full SVG path with interactive intersection marks; only intersections with
-something to show get one (`hasContent`: text or at least one image).
-Intersection text preserves the newlines it was written with (`whitespace-pre-line` on the
+something to show get one (`hasContent`: non-empty text).
+Intersection text preserves the newlines it was generated with (`whitespace-pre-line` on the
 panel's `<p>`); the text stays a flat string, no paragraph parsing.
-Writing is edited in the admin CMS — `PATCH /api/admin/intersections/[id]`.
+Text is written automatically, by `lib/server/haiku.ts`, when the intersection is first detected —
+see "Haiku generation" below.
 
 ### Wind trace UI rebuild ✅
 d3-zoom two-layer SVG: the content layer pans and scales with the camera, the marks layer is
 positioned in data space but sized in screen pixels. Selecting a mark pans it to the centre of the
 visible (non-panel) area.
 Components: `TraceSVG` (orchestrator), `trace-camera` (d3-zoom controller), `TraceDots`,
-`IntersectionDot`, `IntersectionPanel` (+ `PanelNav`, `IntersectionImages`, `ImageLightbox`).
+`IntersectionDot`, `IntersectionPanel` (+ `PanelNav`) — text-only on this branch, no image panel.
 On mobile (< 768px) the detail panel is full-screen with bottom nav instead of a side panel.
 
 ### Trace marks ✅
@@ -163,54 +150,43 @@ each side is capped independently to the available space — `gBefore = min(gapH
 visual skew when a crossing is near a segment endpoint (see backlog for the constraint triangle and
 future direction).
 
-### Intersection email notification ✅
-Sends a plain-text email via Resend when a new intersection is detected.
-Fire-and-forget — a failed send never breaks the weather-fetch cycle.
-Refuses to send at all when the database is local, which covers a script and a cron unlocked with
-`WEATHER_CRON=1`: the credentials and recipient are the real ones wherever the trace came from.
-Reply-to address is pre-set to `trace+<id>@<domain>` for future inbound handling.
-Email includes a direct link to the admin CMS detail page (`BASE_URL/admin/intersections/<id>`).
-Requires env vars: `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM`, `BASE_URL`.
-`BASE_URL` must be an **origin only** — a path on it 404s every emailed admin link.
+### Haiku generation ✅
+Every newly-detected self-crossing gets a plain 5-7-5 haiku, written by Claude from the two
+crossing snapshots' raw Open-Meteo JSON.
+- `lib/server/haiku.ts` — `generateHaiku(snapshotA, snapshotB)`, model `claude-haiku-4-5-20251001`,
+  system prompt requires a couple of raw field names/values to survive unchanged into the haiku.
+- Hook point: `processIntersections()` in `lib/server/weather-ingest.ts`, called right after
+  `detectAndStoreIntersections` finds new crossings. Per-intersection try/catch — one bad
+  generation never blocks the rest or the ingest cycle.
+- Writes straight to `Intersection.text` via `prisma.intersection.update`. No admin override on
+  this branch — fully automatic, no per-intersection admin UI at all.
+- Requires env var: `ANTHROPIC_API_KEY`.
 
 ### Admin CMS ✅
-Single-password admin interface at `/admin/*` for editing intersection text and managing images.
+Single-password admin interface, trimmed to just location entry on this branch (no intersection
+text/photo editing — that's automatic now, see above).
 - Auth: `iron-session` cookie (`ADMIN_PASSWORD`, `SESSION_SECRET`); in-memory brute-force protection (5 attempts/IP/15min)
-- Pages: `/admin/login`, `/admin/intersections` (paginated list, `?filter=needs-content` — no text *and*
-  no images — preserved across pages), `/admin/intersections/[id]` (detail/edit, prev/next),
-  `/admin/location` (web fallback for setting the current location without the iOS app)
-- List-page URL state follows the Next.js `searchParams` convention: read via `toSearchParams`
-  (collapses repeated params, drops empties) and written via `intersectionPageHref`, which seeds
-  from the current query so any param added later survives pagination
-- Image storage: private Supabase Storage bucket named by `SUPABASE_BUCKET`; signed URLs generated server-side
-- Requires env vars: `ADMIN_PASSWORD`, `SESSION_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BASE_URL`
+- Pages: `/admin/login`, `/admin/location` (set the tracked location)
+- Requires env vars: `ADMIN_PASSWORD`, `SESSION_SECRET`
 - Redirects **never** derive their origin from `req.url`: in a standalone build Next builds that origin
   from the bind address (`0.0.0.0`), not the Host header, which sent login/logout to
   `http://0.0.0.0:3000/admin/...` in production. Route handlers emit a relative `Location`
   (`redirectToPath`); `proxy.ts` needs an absolute URL — Next's middleware pipeline rejects a relative
   one — so it builds one from the forwarded/Host headers (`sameOriginUrl`).
-- Key files: `proxy.ts` (Next 16 middleware), `lib/server/auth/redirect.ts`, `lib/server/auth/session-config.ts`, `lib/server/auth/session.ts`, `lib/server/supabase.ts`, `lib/server/auth/rate-limit.ts`, `app/admin/`
+- Key files: `proxy.ts` (Next 16 middleware), `lib/server/auth/redirect.ts`, `lib/server/auth/session-config.ts`, `lib/server/auth/session.ts`, `lib/server/auth/rate-limit.ts`, `app/admin/`
 
-### Public access gate ✅
-The trace at `/` sits behind a shared viewer password (`VIEWER_PASSWORD`), separate from
-`ADMIN_PASSWORD` so a read-only link can be handed out without the CMS. It reuses the admin
-machinery wholesale: the same `iron-session` cookie carrying a second flag (`isViewer`), the same
-brute-force limiter, the same host-correct redirects. Admin implies viewer; viewer never implies
-admin.
+### Public access — no gate ✅
+The trace at `/` is openly viewable on this branch — no `VIEWER_PASSWORD`, no login. Only `/admin/*`
+stays gated (admin session).
 
 The rules are a pure function, `accessFor` (`lib/domain/access.ts`), returning
-`allow | viewer-login | admin-login | unauthorized`; `proxy.ts` is only the shell that unseals the
-cookie and turns a verdict into a response.
+`allow | admin-login | unauthorized`; `proxy.ts` is only the shell that unseals the cookie and
+turns a verdict into a response.
 
-`/api/location` must never be gated — the iOS app authenticates with a `Bearer` header and holds no
-cookie, so gating it stops GPS ingest, and nothing about a stalled trace fails loudly. It is kept
-out of the middleware matcher *and* named in `accessFor`'s always-open set, with a test pinning it.
-The matcher lists gated paths explicitly instead of sweeping the site with exclusions, which means a
-future public route must be added there or it ships ungated.
-
-The gate fails closed: an unset `VIEWER_PASSWORD` refuses everyone rather than admitting everyone.
-The variable lives in the server's compose file, outside this repo, so it must be set there *before*
-a deploy carries the gate to production.
+`/api/location` must never be gated — it accepts a `Bearer` header, not a cookie. It is kept out of
+the middleware matcher *and* named in `accessFor`'s always-open set, with a test pinning it. The
+matcher lists gated paths explicitly instead of sweeping the site with exclusions, which means a
+future gated route must be added there or it ships ungated.
 
 ### Time-of-day backdrop ✅
 A quiet, alive background for the trace page: eight near-white atmospheric gradients (dawn/morning/
@@ -224,7 +200,7 @@ model — the schema has no such field.
 The breathe animation (`scale`/`filter: brightness` pulse, 12-22s depending on bucket) runs on its
 own fixed, `z-index: -1` layer behind all content, not as a `filter` on a content-bearing element —
 a CSS `filter` paints everything inside the element it's on. Rendered from `app/(trace)/page.tsx`
-only (both the normal and empty-trace branches); admin and viewer-login are unaffected.
+only (both the normal and empty-trace branches); admin is unaffected.
 - Key files: `lib/domain/time-of-day.ts` (`resolveTimeOfDay`, `DEFAULT_TIME_OF_DAY_CONFIG`),
   `lib/server/data/time-of-day.ts` (`getCurrentTimeOfDay`), `app/(trace)/TimeOfDayBackdrop.tsx`,
   `app/globals.css` (`.time-of-day-backdrop`, `@keyframes time-of-day-breathe`).
@@ -282,22 +258,17 @@ Because `server-only` throws under plain Node resolution, `vitest.config.ts` ali
 package's own `empty.js` — the same module Next resolves it to under the `react-server` condition.
 
 ## Key files
-- `lib/server/weather-ingest.ts` — fetch, store snapshot, store trace point, fire intersection detection + email notification
+- `lib/server/weather-ingest.ts` — fetch, store snapshot, store trace point, fire intersection detection + haiku generation
+- `lib/server/haiku.ts` — `generateHaiku` (Anthropic call, paired-snapshot haiku prompt)
 - `lib/domain/trace-geometry.ts` — pure geometry: `computeTracePoint`, `segmentsIntersect`
 - `lib/server/data/intersection-detection.ts` — `detectAndStoreIntersections` (walks stored points, persists crossings)
 - `lib/domain/trace-weave.ts` — `computeWeaveSegments`, `buildWeavePaths` (weave geometry; currently unwired)
-- `lib/domain/format-date.ts` — `formatDate`, the one date format shared by emails and admin UI
-- `lib/server/email.ts` — Resend client, `sendIntersectionEmail`
+- `lib/domain/format-date.ts` — `formatDate`, the panel/email date format
 - `lib/server/auth/redirect.ts` — `redirectToPath`, `sameOriginUrl`, `safeNextPath` (host-correct auth redirects)
 - `lib/domain/trace-viewport.ts` — `computeFitTransform`, `projectToScreen` (pure viewport maths)
 - `lib/server/data/trace-points.ts` — `getTracePoints` (ordered points for the public view)
 - `lib/server/data/wind.ts` — `getCurrentWindField` (snapshots → `WindField`, keeps rawJson server-side)
-- `lib/server/data/intersections.ts` — public/admin intersection queries + signed image URLs; `IntersectionWithImages` type
-- `lib/server/images.ts` — upload processing (HEIC decode, orient, downscale, WebP encode); `IMAGE_CONFIG`
-- `lib/server/image-urls.ts` — batched + memoised signed URLs; URLs are held for half their validity
-  so the query string stays stable across renders and the browser can actually cache the image
-- `lib/server/data/admin-intersections.ts` — admin list pagination + `getIntersectionStats`
-- `lib/domain/intersection-query.ts` — pure searchParam parsing + `intersectionPageHref` for the admin queue
+- `lib/server/data/intersections.ts` — `getAllIntersections`; `TraceIntersection` type
 - `app/(trace)/page.tsx` — server component (the trace page), fetches trace points + intersections + wind field
 - `app/(trace)/TraceSVG.tsx` — client component, orchestrator
 - `app/(trace)/trace-camera.ts` — d3-zoom controller (`fitScale`, `fit`, `animateTo`, `destroy`)
@@ -313,41 +284,50 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `app/(trace)/TraceHeader.tsx` — positions the flow-field headline; takes its text as a prop
 - `app/(trace)/TraceDots.tsx` — the marks layer; one element per group, not per intersection
 - `app/(trace)/IntersectionDot.tsx` — SVG ring + hit area, sized in screen pixels
-- `app/(trace)/IntersectionPanel.tsx` — detail panel (side on desktop, full-screen on mobile)
-- `app/(trace)/PanelNav.tsx`, `app/(trace)/IntersectionImages.tsx`, `app/(trace)/ImageLightbox.tsx` — panel sub-components
-- `components/ImageFrame.tsx` — shared image element: reserves the aspect ratio up front and
-  cross-fades a hairline frame into the loaded image. The only component outside `app/`, because
-  both the trace panel and the admin editor use it.
+- `app/(trace)/IntersectionPanel.tsx` — detail panel (side on desktop, full-screen on mobile), text-only
+- `app/(trace)/PanelNav.tsx` — panel prev/next/close controls
 - `lib/domain/time-of-day.ts` — `resolveTimeOfDay`, `DEFAULT_TIME_OF_DAY_CONFIG` (pure)
 - `lib/server/data/time-of-day.ts` — `getCurrentTimeOfDay` (latest snapshot's timezone → current
   local hour → bucket)
 - `app/(trace)/TimeOfDayBackdrop.tsx` — the fixed, non-interactive breathing backdrop layer
-- `lib/domain/access.ts` — `accessFor`, the pure access rules for every gated path
-- `proxy.ts` — Next 16 middleware guarding `/` and `/admin/*`; the shell around `accessFor`
-- `app/viewer-login/page.tsx`, `app/api/viewer-login/route.ts` — the viewer password form and check
+- `lib/domain/access.ts` — `accessFor`, the pure access rules for every gated path (admin-only on this branch)
+- `proxy.ts` — Next 16 middleware guarding `/admin/*`; the shell around `accessFor`
 - `app/robots.ts` — disallow-all, paired with the `X-Robots-Tag` header in `next.config.ts`
-- `app/api/location/route.ts` — POST endpoint receiving GPS coordinates from iOS app
+- `app/api/location/route.ts` — POST endpoint for GPS coordinates (kept ungated; unused by the manual-entry flow but not removed)
 - `app/api/admin/login/route.ts`, `app/api/admin/logout/route.ts` — admin auth
-- `app/api/admin/intersections/[id]/route.ts` — PATCH intersection text
-- `app/api/admin/intersections/[id]/images/route.ts` — POST image upload
-- `app/api/admin/intersections/[id]/images/[imageId]/route.ts` — DELETE image
-- `app/api/admin/location/route.ts` — POST location from the admin web fallback
+- `app/api/admin/location/route.ts` — POST location from the admin web form
 - `scripts/backfill-trace.ts` — one-time backfill for pre-existing snapshots
-- `scripts/backfill-image-variants.ts` — re-processes images stored before the resize pipeline
-  (`npm run backfill:images`; dry by default, `--apply` to write)
 - `scripts/reset-trace.ts` — deletes all trace points and intersections from DB
 - `docs/backlog.md` — project backlog
+- `docs/public-fork.md` — why this branch exists and what differs from `main`
 
 ---
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` runs on every push to `main` and on every pull request.
+`.github/workflows/deploy.yml` is a tracked file like any other, so this branch simply carries
+its own independent copy — edited only here, triggers only on `public`. `main`'s copy of the
+same filename is untouched and keeps deploying `main` exactly as before. No branch conditionals,
+no second filename.
 
 **`verify`** — `npm ci` → `prisma generate` → `npm run typecheck` → `npm run lint` → `npm test`.
-Needs no secrets and no services: the whole suite mocks Prisma, `fetch`, and `resend`. The explicit
+Needs no secrets and no services: the whole suite mocks Prisma and `fetch`. The explicit
 `prisma generate` is belt-and-braces — `@prisma/client`'s postinstall already generates the client on
 `npm ci` — but it keeps the typecheck honest if that postinstall is ever skipped.
+
+**`build-and-deploy`** mirrors `main`'s job but pushes `ghcr.io/neuercoolername/weather:public`
+instead of `:latest`, and deploys the `weather-public` compose service at `wind.davidamberg.work`.
+Its database is `weather-public-db`, a self-hosted Postgres container on the same Docker network
+(Supabase's free-tier project limit was hit) — never exposed to the internet, so unlike `main`,
+migrations don't run from the GitHub Actions runner. Instead the SSH deploy step runs
+`docker compose run --rm --no-deps --user root weather-public sh -c "npm install -g prisma@<ver>
+&& npx prisma migrate deploy"` on the server itself, which resolves `DATABASE_URL`/`DIRECT_URL`
+from `infra-repo`'s `.env` the same way `up` does — no GitHub secret holds a database credential
+for this branch at all. By decision, `ANTHROPIC_API_KEY`/`ADMIN_PASSWORD`/`SESSION_SECRET` are
+reused from `main`'s values rather than made distinct; only the database is new. See
+`docs/public-fork.md` for the full env/infra split and why (Cloudflare Access TCP tunneling was
+the alternative, rejected for adding a reachable-from-outside path to a database that otherwise
+never needs one).
 
 `npm run typecheck` is `next typegen && tsc --noEmit`, and the `typegen` half is load-bearing.
 `PageProps<'/route'>` is a **global** that Next writes into `.next/types/`, which `tsconfig.json`
@@ -356,7 +336,7 @@ fails with `Cannot find name 'PageProps'`. `next typegen` generates those route 
 build, needing no env vars or database. It also keeps local typechecks correct after a route is moved
 or deleted, where the stale generated types would otherwise report a route that no longer exists.
 
-**`build-and-deploy`** — gated on `verify` and restricted to pushes to `main`, so a red test, type
+`build-and-deploy` is gated on `verify` and restricted to pushes to `public`, so a red test, type
 error, or lint error stops the pipeline before anything is built or deployed. Builds and pushes the
 image to GHCR, runs `prisma migrate deploy`, then pulls and restarts the container over a
 cloudflared SSH tunnel.
@@ -366,17 +346,15 @@ Limits worth knowing:
   `--max-warnings 0` could now be turned on.
 - `verify` does not run `npm run build` — the Docker build does, so a build break still fails the
   pipeline, but only after `verify` passes.
-- The image is tagged `:latest` only, so there is no rollback target and the server's `pull` is not
+- The image is tagged `:public` only, so there is no rollback target and the server's `pull` is not
   pinned to the image the run just built. Re-tagging also orphans the previous image on every
   deploy, so the deploy ends with `docker image prune -f` — without it the server's disk fills and
   the next pull fails part-way through extracting a layer.
 - Migrations are applied *after* the image is pushed.
-- `backup.yml` writes to a GitHub artifact, so the backup lives with the same vendor as the repo
-  and covers Postgres only — never the Storage bucket. The dump is GPG-encrypted
-  (`BACKUP_PASSPHRASE`) before upload: this repository is public, and artifacts on a public
-  repository are listable by anyone and downloadable by any authenticated GitHub user, while the
-  dump holds every intersection text. `scripts/db-restore.sh` decrypts a `.gpg` argument on the way
-  in.
+- `backup.yml` writes to a GitHub artifact, so the backup lives with the same vendor as the repo.
+  On this branch its content (generated haikus) isn't sensitive the way `main`'s hand-written text
+  was, but it still targets `main`'s DB only today — it does not yet cover the `public` DB (see
+  `docs/public-fork.md`'s open question on this).
 
 Other workflows: `backup.yml` (nightly `pg_dump` to an artifact, 90-day retention),
 `baseline.yml` (one-shot `migrate resolve`, manual dispatch), and `run-script.yml`
@@ -397,21 +375,11 @@ file won. (Empirically: constructing `PrismaClient` is what loads `.env` for scr
 - **`assertNotProduction`** — refuses unless the database is local. `ALLOW_PROD=1` unlocks it, and
   `run-script.yml` is the only place that is set. `scripts/reset-trace.ts` passes
   `allowOverride: false`, so nothing unlocks it there.
-- **`isLocalDatabase`** — the underlying test, also read directly by `cron.ts` and `email.ts` to
-  decide whether this process may reach the outside world at all (see Weather fetching).
-- **`assertTargetsAgree` / `targetsDisagree`** — refuses writes unless the database and the bucket
-  are a matching pair: local database with `intersection-images-dev`, production database with
-  `intersection-images`. Both buckets live in the same Supabase project, so the project URL cannot
-  tell them apart and the rule keys on `SUPABASE_BUCKET` instead. An unset bucket resolves to the
-  production name, which keeps the deployed container working without a new variable. Guards the
-  image upload and delete routes and `backfill-image-variants --apply`.
+- **`isLocalDatabase`** — the underlying test, also read directly by `cron.ts` to decide whether
+  this process may reach the outside world at all (see Weather fetching).
 
-Blobs are remote in development too — only the bucket differs, not the host — so image work needs a
-network connection, and `SUPABASE_SERVICE_ROLE_KEY` is the same key for both buckets because they
-share a project. The guard constrains what the app does with that key; it does not scope the key
-itself. Rows restored from a production dump point at objects in the production bucket and will not
-render against the dev bucket; `signedUrlsFor` skips keys it cannot sign, so the page degrades
-quietly.
+No storage bucket exists on this branch, so there's no bucket-pairing guard to maintain — that
+concern (and `lib/server/supabase.ts`/`images.ts`) was removed along with `IntersectionImage`.
 
 ---
 

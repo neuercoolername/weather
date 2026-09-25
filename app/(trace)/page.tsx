@@ -1,4 +1,4 @@
-import { getAllIntersectionsWithImages } from "@/lib/server/data/intersections";
+import { getAllIntersections } from "@/lib/server/data/intersections";
 import { getTracePoints } from "@/lib/server/data/trace-points";
 import { getCurrentWindField } from "@/lib/server/data/wind";
 import { getCurrentTimeOfDay } from "@/lib/server/data/time-of-day";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const [tracePoints, intersections, windField, timeOfDay] = await Promise.all([
     getTracePoints(),
-    getAllIntersectionsWithImages(),
+    getAllIntersections(),
     getCurrentWindField(),
     getCurrentTimeOfDay(),
   ]);

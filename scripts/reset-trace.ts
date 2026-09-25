@@ -1,10 +1,9 @@
 /**
  * Wipes the computed trace so it can be rebuilt from scratch by `backfill:trace`.
  *
- * Local-only, permanently. `Intersection` cascades to `IntersectionImage`, so this also destroys
- * every hand-written intersection text and every image row — the only data on this project that
- * cannot be recomputed from `WeatherSnapshot`. There is no production use for that, so the guard
- * here has no override.
+ * Local-only, permanently. This also destroys every generated intersection haiku — the only data
+ * on this project that cannot be recomputed from `WeatherSnapshot`. There is no production use
+ * for that, so the guard here has no override.
  */
 import { createInterface } from "node:readline/promises";
 import { prisma } from "@/lib/server/prisma";
@@ -15,27 +14,17 @@ const CONFIRMATION = "delete everything";
 async function main() {
   assertNotProduction("reset-trace", { allowOverride: false });
 
-  const [intersections, withText, images, tracePoints] = await Promise.all([
+  const [intersections, withText, tracePoints] = await Promise.all([
     prisma.intersection.count(),
     prisma.intersection.count({ where: { text: { not: null } } }),
-    prisma.intersectionImage.count(),
     prisma.tracePoint.count(),
   ]);
 
   console.log("This deletes, from the local database:");
   console.log(
-    `  Intersection       ${intersections} row(s) — ${withText} carrying hand-written text`
-  );
-  console.log(
-    `  IntersectionImage  ${images} row(s) — cascaded from Intersection`
+    `  Intersection       ${intersections} row(s) — ${withText} carrying a generated haiku`
   );
   console.log(`  TracePoint         ${tracePoints} row(s)`);
-
-  if (images > 0) {
-    console.log(
-      `\nThe ${images} image blob(s) stay in the storage bucket; only the rows pointing at them go.`
-    );
-  }
 
   if (intersections === 0 && tracePoints === 0) {
     console.log("\nNothing to delete.");

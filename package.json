@@ -21,6 +21,7 @@
     "reset-trace": "tsx --tsconfig tsconfig.scripts.json scripts/reset-trace.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@prisma/client": "^6.19.2",
     "@supabase/supabase-js": "^2.104.0",
     "d3-selection": "^3.0.0",
@@ -31,7 +32,6 @@
     "node-cron": "^4.2.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "resend": "^6.9.3",
     "server-only": "^0.0.1",
     "sharp": "^0.35.3"
   },

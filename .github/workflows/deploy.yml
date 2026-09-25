@@ -1,10 +1,12 @@
-name: CI & Deploy
+name: CI & Deploy (public)
 
 on:
   push:
     branches:
-      - main
+      - public
   pull_request:
+    branches:
+      - public
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -41,7 +43,7 @@ jobs:
 
   build-and-deploy:
     needs: verify
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
@@ -60,22 +62,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/neuercoolername/weather:latest
-
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Apply database migrations
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-        run: npx prisma migrate deploy
+          tags: ghcr.io/neuercoolername/weather:public
 
       - name: Deploy on server
         uses: and-fm/cloudflared-ssh-action@v3
@@ -87,8 +74,21 @@ jobs:
           port: 22
           service_token_id: ${{ secrets.SERVICE_TOKEN_ID }}
           service_token_secret: ${{ secrets.SERVICE_TOKEN_SECRET }}
-          # The trailing prune is dangling-only on purpose: pulling `:latest` orphans the previous
-          # image every deploy, and with nothing removing them the server ran out of disk mid-pull.
-          # `-a` would be wrong here — it would also drop images belonging to any service that
-          # happened to be stopped at deploy time.
-          commands: docker compose -f /home/david/projects/infra-repo/docker-compose.yml pull weather && docker compose -f /home/david/projects/infra-repo/docker-compose.yml up -d weather && docker image prune -f
+          # Same server as the private deploy (that's main's own deploy.yml, a different file on a
+          # different branch), different compose service — see docker-compose.yml in infra-repo.
+          #
+          # Postgres for this branch is self-hosted (weather-public-db, a plain Postgres container
+          # on the same Docker network), never exposed to the internet — unlike main's Supabase
+          # DB, so migrations can't run from the GitHub Actions runner. They run here instead, via
+          # `docker compose run` against the same service definition the running container uses,
+          # which resolves DATABASE_URL/DIRECT_URL from infra-repo's .env the same way `up` does.
+          # `prisma` isn't in the runtime image (Dockerfile strips devDependencies), so it's
+          # installed fresh in that one-off run — pin its version to match package.json's when
+          # that changes. `--user root` because the image otherwise runs as the non-root `nextjs`
+          # user, who can't write to npm's global install path.
+          commands: >
+            docker compose -f /home/david/projects/infra-repo/docker-compose.yml pull weather-public &&
+            docker compose -f /home/david/projects/infra-repo/docker-compose.yml run --rm --no-deps --user root
+            weather-public sh -c "npm install -g prisma@6.19.2 && npx prisma migrate deploy" &&
+            docker compose -f /home/david/projects/infra-repo/docker-compose.yml up -d weather-public &&
+            docker image prune -f

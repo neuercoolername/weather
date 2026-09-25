@@ -52,23 +52,5 @@ model Intersection {
   y                Float
   text             String?
   detectedAt       DateTime             @default(now())
-  images           IntersectionImage[]
-}
-
-model IntersectionImage {
-  id             String       @id @default(cuid())
-  intersectionId Int
-  intersection   Intersection @relation(fields: [intersectionId], references: [id], onDelete: Cascade)
-  storageKey     String
-  createdAt      DateTime     @default(now())
-
-  // Intrinsic size of the stored image, so the client can reserve the exact space before
-  // the bytes arrive. Nullable: rows predating the resize pipeline have no recorded size
-  // until the backfill script fills them in.
-  width          Int?
-  height         Int?
-  bytes          Int?
-
-  @@index([intersectionId])
 }
 

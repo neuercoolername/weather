@@ -1,4 +1,4 @@
-# Local development database only. Production runs from a separate compose file on the server
+# Local development databases only. Production runs from a separate compose file on the server
 # (infra-repo/docker-compose.yml) and has nothing to do with this one.
 services:
   db:
@@ -20,5 +20,27 @@ services:
       timeout: 3s
       retries: 10
 
+  # Separate dev database for the `public` branch's worktree, whose schema has diverged from
+  # `main` (no IntersectionImage). Keeping it apart from `db` means switching branches never
+  # migrates a database out from under the other one.
+  db-public:
+    image: postgres:17
+    container_name: weather-dev-db-public
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: weather
+      POSTGRES_PASSWORD: weather
+      POSTGRES_DB: weather
+    ports:
+      - "5434:5432"
+    volumes:
+      - weather-dev-db-public:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U weather -d weather"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   weather-dev-db:
+  weather-dev-db-public:
