@@ -242,8 +242,19 @@ the letterforms, faint outside) instead of plain type. The turbulence is a synth
 statistics match the real wind reading: mean flow from direction + speed, turbulence intensity from the
 gust factor (`TI = (G−1)/3`), a slow direction meander from the 24h circular variance, a gust "pulse",
 and length variance that ramps with wind speed (stormy feel). The wind reading drives *motion only* —
-the text is the word **"Wind"** by default, or the crossing's two dates in compact `D/M/YY × D/M/YY`
-form when an intersection is hovered/active.
+the text is a phrase from the Beaufort wind scale by default, drawn at random on every page load
+(`lib/domain/beaufort.ts`, e.g. "Felt on face"), or the crossing's two dates in compact
+`D/M/YY × D/M/YY` form when an intersection is hovered/active.
+
+Every title shares one fixed size (64px, the size "Wind" always had), so the page reads the same
+whatever phrase it drew; the text takes its natural width. A phrase wider than the window runs to
+the edge and fades out over its last 160px rather than shrinking — shrinking was tried, and below
+~40px the quiver's 6px grid cannot draw a letter. At 1440px, 46 of the 49 phrases fit. Phones and
+tablets (narrower than 1024px, or no hover) show the word **"Wind"** instead, crossing dates
+included. The knobs are `HeadlineLayoutParams` (`lib/domain/headline-layout.ts`), tuned in a bench
+that ran the real renderer against every phrase. The renderer sizes itself to its container
+(`TraceHeader`, which carries no horizontal padding — the side margin is `gutterPx`) and re-lays
+on resize.
 
 The headline is the only preview title the trace has: the marks carry no tooltip. A ring holding
 several crossings keeps that same `×` grammar and appends the count of the others —
@@ -309,7 +320,9 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `lib/domain/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats)
 - `app/(trace)/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
 - `app/(trace)/flow-field-renderer.ts` — the canvas draw loop the headline component wraps
-- `lib/domain/trace-headline.ts` — the header text ("Wind" | `D/M/YY × D/M/YY` | + ` +n`) (pure)
+- `lib/domain/trace-headline.ts` — the header text (the phrase | `D/M/YY × D/M/YY` | + ` +n`) (pure)
+- `lib/domain/beaufort.ts` — the Beaufort phrase list and `randomPhrase` (pure)
+- `lib/domain/headline-layout.ts` — `HeadlineLayoutParams` (fixed size, fade, compact threshold) (pure)
 - `app/(trace)/TraceHeader.tsx` — positions the flow-field headline; takes its text as a prop
 - `app/(trace)/TraceDots.tsx` — the marks layer; one element per group, not per intersection
 - `app/(trace)/IntersectionDot.tsx` — SVG ring + hit area, sized in screen pixels

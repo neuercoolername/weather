@@ -29,6 +29,8 @@ interface Props {
   tracePoints: TracePoint[];
   intersections: IntersectionWithImages[];
   windField: WindField | null;
+  /** this load's Beaufort phrase as headline text — shown whenever no crossing is */
+  phrase: string;
   /** override any of the tuned mark/weight values */
   params?: Partial<TraceMarkParams>;
 }
@@ -41,6 +43,7 @@ export default function TraceSVG({
   tracePoints,
   intersections,
   windField,
+  phrase,
   params: paramOverrides,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -126,8 +129,8 @@ export default function TraceSVG({
   // by key also survives a split — the key still belongs to one of the halves.
   const hoveredGroup = groups.find((g) => groupKey(g).id === hoveredKey) ?? null;
   const headline = hoveredGroup
-    ? traceHeadline(groupKey(hoveredGroup), hoveredGroup.members.length - 1)
-    : traceHeadline(activeIntersection, 0);
+    ? traceHeadline(groupKey(hoveredGroup), hoveredGroup.members.length - 1, phrase)
+    : traceHeadline(activeIntersection, 0, phrase);
 
   // Hand the current rings to the breathing loop. Re-runs whenever anything that
   // moves or resizes a ring changes; the controller finds them by data attribute.
