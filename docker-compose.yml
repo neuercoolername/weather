@@ -1,5 +1,7 @@
 # Local development database only. Production runs from a separate compose file on the server
 # (infra-repo/docker-compose.yml) and has nothing to do with this one.
+# Pinned so every checkout of the repo shares one project and one data volume, whatever its folder.
+name: weather
 services:
   db:
     image: postgres:17
