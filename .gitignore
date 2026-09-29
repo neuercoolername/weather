@@ -59,3 +59,7 @@ CLAUDE.md
 # local dev tooling / agent config
 .mcp.json
 .playwright-mcp/
+
+# database dumps — real production data, never committed
+*.dump
+*.dump.gpg
