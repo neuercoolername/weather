@@ -1,6 +1,7 @@
 // The text on the flow-field headline. It is the trace's only preview title — the
 // marks carry no tooltip — so it says one of three things: nothing is pointed at,
-// this crossing, or this crossing and how many more share its ring.
+// this crossing, or this crossing and how many more share its ring. With nothing
+// pointed at it shows the Beaufort phrase this page load drew.
 
 export interface HeadlineCrossing {
   tracePointA: { snapshot: { fetchedAt: Date } };
@@ -15,7 +16,7 @@ function formatCompactDate(d: Date): string {
 }
 
 /**
- * `null` → "Wind"; a crossing → "D/M/YY × D/M/YY"; plus " +n" when `extra`
+ * `null` → `phrase`; a crossing → "D/M/YY × D/M/YY"; plus " +n" when `extra`
  * further crossings sit behind it in the same ring.
  *
  * A merged ring keeps the crossing grammar rather than reporting its date span:
@@ -23,8 +24,12 @@ function formatCompactDate(d: Date): string {
  * the `×` form. The caller picks the crossing (`groupKey`), so a merged title
  * always names the one a click on that ring can actually open.
  */
-export function traceHeadline(crossing: HeadlineCrossing | null, extra: number): string {
-  if (!crossing) return "Wind";
+export function traceHeadline(
+  crossing: HeadlineCrossing | null,
+  extra: number,
+  phrase: string
+): string {
+  if (!crossing) return phrase;
 
   const a = formatCompactDate(crossing.tracePointA.snapshot.fetchedAt);
   const b = formatCompactDate(crossing.tracePointB.snapshot.fetchedAt);

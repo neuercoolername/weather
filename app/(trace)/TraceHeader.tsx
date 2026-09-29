@@ -7,10 +7,11 @@ import FlowFieldHeadline from "./FlowFieldHeadline";
 // The wind reading drives the field's *motion*; the text comes from what the viewer
 // is pointing at (`traceHeadline`, chosen by TraceSVG). Taking it as a plain string
 // is what keeps the memo below working — it compares by value, so the headline does
-// not re-render on every zoom frame.
+// not re-render on every zoom frame. No horizontal padding: the headline sizes itself to
+// this box's width and keeps its own side margin (`HeadlineLayoutParams.gutterPx`).
 function TraceHeader({ windField, text }: { windField: WindField | null; text: string }) {
   return (
-    <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none px-6 py-4">
+    <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none py-4">
       <FlowFieldHeadline text={text} field={windField} />
     </div>
   );

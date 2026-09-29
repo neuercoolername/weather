@@ -2,6 +2,7 @@ import { getAllIntersections } from "@/lib/server/data/intersections";
 import { getTracePoints } from "@/lib/server/data/trace-points";
 import { getCurrentWindField } from "@/lib/server/data/wind";
 import { getCurrentTimeOfDay } from "@/lib/server/data/time-of-day";
+import { randomPhrase } from "@/lib/domain/beaufort";
 import TraceSVG from "./TraceSVG";
 import TimeOfDayBackdrop from "./TimeOfDayBackdrop";
 
@@ -31,6 +32,7 @@ export default async function Home() {
         tracePoints={tracePoints}
         intersections={intersections}
         windField={windField}
+        phrase={randomPhrase().text}
       />
     </div>
   );
