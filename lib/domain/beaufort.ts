@@ -10,12 +10,12 @@ export interface BeaufortPhrase {
 export const BEAUFORT_PHRASES: readonly BeaufortPhrase[] = [
   { text: "Felt on face", force: 2, group: "wind" },
   { text: "Extends light flag", force: 3, group: "wind" },
-  { text: "In constant motion", force: 3, group: "wind" },
+  // { text: "In constant motion", force: 3, group: "wind" },
   { text: "Raises dust and loose paper", force: 4, group: "wind" },
   { text: "Breaks twigs off trees", force: 8, group: "wind" },
   // { text: "Generally impedes progress", force: 8, group: "wind" },
-  { text: "Seldom experienced inland", force: 10, group: "wind" },
-  { text: "Very rarely experienced", force: 11, group: "wind" },
+  // { text: "Seldom experienced inland", force: 10, group: "wind" },
+  // { text: "Very rarely experienced", force: 11, group: "wind" },
   // { text: "Accompanied by widespread damage", force: 11, group: "wind" },
 
   { text: "Smoke rises vertically", force: 0, group: "land" },
@@ -31,9 +31,9 @@ export const BEAUFORT_PHRASES: readonly BeaufortPhrase[] = [
   { text: "Whistling heard in telegraph wires", force: 6, group: "land" },
   { text: "Umbrellas used with difficulty", force: 6, group: "land" },
   { text: "Whole trees in motion", force: 7, group: "land" },
-  // { text: "Inconvenience felt when walking against the wind", force: 7, group: "land" },
+  { text: "Inconvenience felt when walking against the wind", force: 7, group: "land" },
   // { text: "Slight structural damage occurs", force: 9, group: "land" },
-  // { text: "Chimney pots and slates removed", force: 9, group: "land" },
+  { text: "Chimney pots and slates removed", force: 9, group: "land" },
   { text: "Trees uprooted", force: 10, group: "land" },
   // { text: "Considerable structural damage occurs", force: 10, group: "land" },
 
