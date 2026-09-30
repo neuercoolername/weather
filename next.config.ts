@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   // otherwise misses because it is behind a lazy import.
   serverExternalPackages: ["sharp", "heic-convert"],
 
+  // The About button owns the bottom-left corner.
+  devIndicators: { position: "bottom-right" },
+
   // Applies to every response, not just HTML, so signed image URLs and API JSON carry it too.
   // Pairs with `app/robots.ts` — see the note there on why neither is sufficient alone.
   async headers() {

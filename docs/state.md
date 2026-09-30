@@ -265,6 +265,19 @@ so they never appear on touch, where a tap zooms the ring apart instead.
 - Key files: `lib/domain/flow-field.ts`, `lib/domain/wind-field.ts`, `app/(trace)/FlowFieldHeadline.tsx`,
   `app/(trace)/TraceHeader.tsx`, `app/(trace)/flow-field-renderer.ts`, `app/(trace)/page.tsx`.
 
+### About panel ✅
+A small hand-drawn ring around an italic *i*, bottom-left, opens a short explanation of the project
+in a sheet from the left: the intersection panel's mirror, full-screen on mobile. The ring uses the
+crossing rings' pen with a fixed seed (`seededRandom`), so it is the shape chosen in the prototype
+and server and client draw the same one. It grows and breathes on the marks' period while hovered
+or open (CSS, `globals.css`; off under `prefers-reduced-motion`).
+- Only one panel at a time: opening About closes a crossing's panel, opening a crossing closes
+  About, and a click on the empty trace closes both. Zooming into a group leaves About open.
+- The meta line (`17 Feb 2026 – now · 4,558 hours · 140 crossings`) is formatted on the server by
+  `aboutMeta`, dated in Europe/Berlin like `formatDate`. The copy lives in `AboutPanel.tsx`.
+- Tuned values are `DEFAULT_ABOUT_PARAMS` (`lib/domain/about.ts`).
+- The Next dev indicator is moved bottom-right (`next.config.ts`) so it does not cover the button.
+
 ---
 
 ## Library layout
@@ -324,6 +337,9 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `components/ImageFrame.tsx` — shared image element: reserves the aspect ratio up front and
   cross-fades a hairline frame into the loaded image. The only component outside `app/`, because
   both the trace panel and the admin editor use it.
+- `lib/domain/about.ts` — `AboutParams`, `DEFAULT_ABOUT_PARAMS`, `aboutMeta` (pure)
+- `app/(trace)/AboutButton.tsx` — the bottom-left ring button
+- `app/(trace)/AboutPanel.tsx` — the About sheet and its copy
 - `lib/domain/time-of-day.ts` — `resolveTimeOfDay`, `DEFAULT_TIME_OF_DAY_CONFIG` (pure)
 - `lib/server/data/time-of-day.ts` — `getCurrentTimeOfDay` (latest snapshot's timezone → current
   local hour → bucket)
