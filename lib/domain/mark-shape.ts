@@ -193,5 +193,16 @@ export function handDrawnRingPath(rand: () => number, params: RingShapeParams): 
   return ringPath(ringPoints(rand, style, params));
 }
 
+/** mulberry32: a small seeded generator, for a ring whose shape must repeat. */
+export function seededRandom(seed: number): () => number {
+  let a = seed;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 /** The unit circle as a path: what a ring draws before its hand-drawn shape exists. */
 export const UNIT_CIRCLE_PATH = "M1,0A1,1 0 1,1 -1,0A1,1 0 1,1 1,0Z";

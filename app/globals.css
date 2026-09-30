@@ -45,8 +45,35 @@ body {
   }
 }
 
+/* About button (app/(trace)/AboutButton.tsx): grows on hover or while open, then breathes
+   on the marks' period. Two layers, so the breath starts from the grown size, not a jump. */
+.about-grow {
+  transition: transform 0.4s ease;
+}
+
+.about-button:hover .about-grow,
+.about-button[aria-expanded="true"] .about-grow {
+  transform: scale(var(--about-grow));
+}
+
+.about-button:hover .about-breathe,
+.about-button[aria-expanded="true"] .about-breathe {
+  animation: about-breathe var(--about-period) ease-in-out infinite;
+}
+
+@keyframes about-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(var(--about-peak));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .time-of-day-backdrop {
-    animation: none;
+  .time-of-day-backdrop,
+  .about-breathe {
+    animation: none !important;
   }
 }

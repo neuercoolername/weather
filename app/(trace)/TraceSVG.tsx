@@ -18,6 +18,9 @@ import { traceHeadline } from "@/lib/domain/trace-headline";
 import TraceDots from "./TraceDots";
 import IntersectionPanel from "./IntersectionPanel";
 import TraceHeader from "./TraceHeader";
+import AboutButton from "./AboutButton";
+import AboutPanel from "./AboutPanel";
+import { DEFAULT_ABOUT_PARAMS } from "@/lib/domain/about";
 import type { WindField } from "@/lib/domain/wind-field";
 import type { TracePoint } from "@/lib/server/data/trace-points";
 import type { TraceIntersection } from "@/lib/server/data/intersections";
@@ -31,6 +34,8 @@ interface Props {
   windField: WindField | null;
   /** this load's Beaufort phrase as headline text — shown whenever no crossing is */
   phrase: string;
+  /** the About panel's meta line, formatted on the server */
+  aboutMeta: string;
   /** override any of the tuned mark/weight values */
   params?: Partial<TraceMarkParams>;
 }
@@ -44,9 +49,11 @@ export default function TraceSVG({
   intersections,
   windField,
   phrase,
+  aboutMeta,
   params: paramOverrides,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const aboutButtonRef = useRef<HTMLButtonElement>(null);
   const cameraRef = useRef<TraceCamera | null>(null);
   const breathingRef = useRef<MarkBreathing | null>(null);
   const transformRef = useRef<ZoomTransform>(zoomIdentity);
@@ -56,6 +63,8 @@ export default function TraceSVG({
   const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
   const [kFit, setKFit] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
+  // Only one panel at a time: About and a crossing's panel close each other.
+  const [aboutOpen, setAboutOpen] = useState(false);
   // The *ring* under the cursor, not a crossing: a ring can hold several.
   const [hoveredKey, setHoveredKey] = useState<number | null>(null);
 
@@ -179,7 +188,10 @@ export default function TraceSVG({
     (id: number) => {
       const next = activeId === id ? null : id;
       setActiveId(next);
-      if (next !== null) centerOn(next);
+      if (next !== null) {
+        setAboutOpen(false);
+        centerOn(next);
+      }
     },
     [activeId, centerOn]
   );
@@ -214,7 +226,15 @@ export default function TraceSVG({
   );
 
   const handleHoverGroup = useCallback((key: number | null) => setHoveredKey(key), []);
-  const handleClose = useCallback(() => setActiveId(null), []);
+  const handleClose = useCallback(() => {
+    setActiveId(null);
+    setAboutOpen(false);
+  }, []);
+  const handleToggleAbout = useCallback(() => {
+    setActiveId(null);
+    setAboutOpen((open) => !open);
+  }, []);
+  const handleCloseAbout = useCallback(() => setAboutOpen(false), []);
 
   const handlePrev = useCallback(() => {
     if (prevId === null) return;
@@ -271,6 +291,21 @@ export default function TraceSVG({
           onNext={nextId !== null ? handleNext : null}
         />
       )}
+
+      <AboutPanel
+        open={aboutOpen}
+        meta={aboutMeta}
+        params={DEFAULT_ABOUT_PARAMS}
+        onClose={handleCloseAbout}
+        returnFocusRef={aboutButtonRef}
+      />
+      <AboutButton
+        ref={aboutButtonRef}
+        open={aboutOpen}
+        onToggle={handleToggleAbout}
+        params={DEFAULT_ABOUT_PARAMS}
+        ringShape={params.ringShape}
+      />
     </div>
   );
 }

@@ -1,0 +1,59 @@
+// The About button and panel: tuned values and the panel's meta line (pure / no DOM).
+// Tuned in the prototype; see docs/features/about-overlay.
+
+export interface AboutParams {
+  /** distance from the page's left and bottom edges to the ring's centre, px */
+  ringCenterPx: number;
+  /** ring radius, px */
+  ringRadius: number;
+  /** ring stroke, px */
+  ringStroke: number;
+  /** size of the italic i inside the ring, px */
+  glyphPx: number;
+  /** ring scale while hovered or open */
+  hoverGrowth: number;
+  /** extra scale at the top of a breath, fraction of the hovered size */
+  pulseDepth: number;
+  /** one breath, seconds — the marks' period */
+  pulsePeriodSec: number;
+  /** seed for the ring's hand-drawn shape, so it is the one picked in the prototype */
+  ringSeed: number;
+  /** panel width on desktop, fraction of the page — matches the intersection panel */
+  panelWidthFraction: number;
+  /** panel width floor on desktop, px */
+  panelMinWidth: number;
+  /** panel slide in/out, ms */
+  slideMs: number;
+  /** copy size, px */
+  textPx: number;
+  /** copy measure, ch */
+  measureCh: number;
+}
+
+export const DEFAULT_ABOUT_PARAMS: AboutParams = {
+  ringCenterPx: 31,
+  ringRadius: 15,
+  ringStroke: 1,
+  glyphPx: 17,
+  hoverGrowth: 1.12,
+  pulseDepth: 0.12,
+  pulsePeriodSec: 7.4,
+  ringSeed: 7,
+  panelWidthFraction: 0.33,
+  panelMinWidth: 360,
+  slideMs: 320,
+  textPx: 15,
+  measureCh: 38,
+};
+
+/** "17 Feb 2026 – now · 4,558 hours · 140 crossings" */
+export function aboutMeta(since: Date, hours: number, crossings: number): string {
+  const date = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Europe/Berlin",
+  }).format(since);
+  const count = (n: number) => n.toLocaleString("en-GB");
+  return `${date} – now · ${count(hours)} hours · ${count(crossings)} crossings`;
+}

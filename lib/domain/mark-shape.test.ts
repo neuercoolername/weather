@@ -5,21 +5,11 @@ import {
   pickRingStyle,
   ringPath,
   ringPoints,
+  seededRandom as seeded,
   type RingStyle,
 } from "./mark-shape";
 
 const P = DEFAULT_RING_SHAPE_PARAMS;
-
-// mulberry32: a small seeded generator, so a "random" ring is repeatable in a test.
-function seeded(seed: number): () => number {
-  let a = seed;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 const STYLES: RingStyle[] = ["overshoot", "gap", "closed", "multi"];
 const SEEDS = Array.from({ length: 50 }, (_, i) => i * 7919 + 1);
@@ -115,5 +105,23 @@ describe("ringPoints", () => {
         expect(Math.hypot(x, y)).toBeCloseTo(1, 9);
       }
     }
+  });
+});
+
+describe("seededRandom", () => {
+  it("repeats its sequence for the same seed, in [0, 1)", () => {
+    const a = seeded(7);
+    const b = seeded(7);
+    for (let i = 0; i < 100; i++) {
+      const v = a();
+      expect(v).toBe(b());
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThan(1);
+    }
+  });
+
+  it("gives a seeded ring the same path every time", () => {
+    expect(handDrawnRingPath(seeded(7), P)).toBe(handDrawnRingPath(seeded(7), P));
+    expect(handDrawnRingPath(seeded(7), P)).not.toBe(handDrawnRingPath(seeded(8), P));
   });
 });
