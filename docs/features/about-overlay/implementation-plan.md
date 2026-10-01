@@ -24,11 +24,15 @@ zones put the first date on different days.
   `aria-expanded`, `aria-label="About this page"`. Breathing is a CSS keyframe animation that runs
   only on `:hover` or `[aria-expanded="true"]`; values come in as CSS custom properties from
   the params, and it is off under `prefers-reduced-motion`.
-- `AboutPanel.tsx`: the sheet. Left side, `max(360px, 33%)` wide, `border-r zinc-200`,
+- `AboutPanel.tsx`: the sheet. Left side, a two-column grid (text column at `measureCh`, `closeGapPx`, then the ✕) whose
+  width is the panel's width, `border-r zinc-200`,
   `role="dialog"`. It slides on a transform, so it stays mounted and can animate both ways.
-  It has the meta line, the `✕` (reusing `PanelNav`'s button styling) and the two paragraphs.
-  Full-screen below `md`, where the button hides while it is open and `✕` closes it.
-  Esc closes it. Focus moves to `✕` on open and back to the button on close.
+  It has the meta line, the `✕` and the two paragraphs. The `✕`'s layout box is just the glyph,
+  one meta line tall so it centres on the meta's first line; its tap target is a `::before`.
+  Full-screen below `md`. The button hides while the panel is open, at every width; `✕`, Esc or
+  a click on the trace closes it.
+  Esc closes it. Focus moves to the panel on open (no ring on a mouse open; Tab reaches `✕`)
+  and back to the button on close.
 
 ## Wiring (`TraceSVG.tsx`)
 - `aboutOpen` state next to `activeId`. The two panels exclude each other: opening About clears

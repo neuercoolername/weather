@@ -18,16 +18,14 @@ export interface AboutParams {
   pulsePeriodSec: number;
   /** seed for the ring's hand-drawn shape, so it is the one picked in the prototype */
   ringSeed: number;
-  /** panel width on desktop, fraction of the page — matches the intersection panel */
-  panelWidthFraction: number;
-  /** panel width floor on desktop, px */
-  panelMinWidth: number;
   /** panel slide in/out, ms */
   slideMs: number;
   /** copy size, px */
   textPx: number;
-  /** copy measure, ch */
+  /** width of the text column, in the copy's characters; the meta line shares it */
   measureCh: number;
+  /** space between the text column and the close button, px */
+  closeGapPx: number;
 }
 
 export const DEFAULT_ABOUT_PARAMS: AboutParams = {
@@ -39,11 +37,10 @@ export const DEFAULT_ABOUT_PARAMS: AboutParams = {
   pulseDepth: 0.12,
   pulsePeriodSec: 7.4,
   ringSeed: 7,
-  panelWidthFraction: 0.33,
-  panelMinWidth: 360,
   slideMs: 320,
   textPx: 15,
-  measureCh: 38,
+  measureCh: 46,
+  closeGapPx: 16,
 };
 
 /** "17 Feb 2026 – now · 4,558 hours · 140 crossings" */
