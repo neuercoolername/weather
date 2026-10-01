@@ -20,13 +20,14 @@ function AboutPanel({
   returnFocusRef: RefObject<HTMLButtonElement | null>;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
 
+  // Focus goes to the panel itself, not the close button, so opening with a mouse draws no
+  // focus ring; Tab still reaches the button.
   useEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
     const opener = returnFocusRef.current;
-    closeRef.current?.focus();
+    panel?.focus();
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
@@ -37,6 +38,8 @@ function AboutPanel({
     };
   }, [open, onClose, returnFocusRef]);
 
+  // Two columns: the text at its measure, then the close button. On desktop the panel is
+  // as wide as that grid; on mobile the text column takes whatever the screen leaves.
   return (
     <div
       ref={panelRef}
@@ -44,31 +47,35 @@ function AboutPanel({
       aria-label="About"
       aria-hidden={!open}
       inert={!open}
-      className={`fixed z-20 inset-0 md:absolute md:right-auto md:w-(--about-width) flex flex-col bg-white md:border-r border-zinc-200 transition-transform ease-[cubic-bezier(.2,.7,.2,1)] motion-reduce:transition-none ${open ? "translate-x-0" : "-translate-x-[101%]"}`}
-      style={
-        {
-          "--about-width": `max(${params.panelMinWidth}px, ${params.panelWidthFraction * 100}vw)`,
-          transitionDuration: `${params.slideMs}ms`,
-        } as CSSProperties
-      }
+      tabIndex={-1}
+      className={`fixed z-20 inset-0 md:absolute md:right-auto md:w-max flex flex-col bg-white md:border-r border-zinc-200 outline-none transition-transform ease-[cubic-bezier(.2,.7,.2,1)] motion-reduce:transition-none ${open ? "translate-x-0" : "-translate-x-[101%]"}`}
+      style={{ transitionDuration: `${params.slideMs}ms` }}
     >
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-zinc-500 font-mono tabular-nums">{meta}</p>
-          <button
-            ref={closeRef}
-            onClick={onClose}
-            className="w-12 h-12 shrink-0 flex items-center justify-center text-xl text-zinc-400 hover:text-zinc-900"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div
-          className="space-y-[1em] leading-relaxed"
-          style={{ fontSize: params.textPx, maxWidth: `${params.measureCh}ch` }}
+      <div
+        className="flex-1 overflow-y-auto p-6 grid content-start items-center gap-y-6 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,var(--about-measure))_auto]"
+        style={
+          {
+            // `ch` resolves against this font size, so the measure is in the copy's characters.
+            fontSize: params.textPx,
+            columnGap: params.closeGapPx,
+            "--about-measure": `${params.measureCh}ch`,
+          } as CSSProperties
+        }
+      >
+        <p className="text-xs text-zinc-500 font-mono tabular-nums">{meta}</p>
+        {/* The glyph's own box is the layout footprint, so the gap is exactly columnGap; the
+            tap target is the transparent ::before around it. The button is one meta line tall
+            (same text-xs, height 1lh), so the ✕ centres on the meta's first line even when the
+            meta wraps. */}
+        <button
+          onClick={onClose}
+          className="relative self-start h-[1lh] flex items-center text-xs text-zinc-400 hover:text-zinc-900 rounded-sm outline-none focus-visible:outline-solid focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-zinc-400 before:absolute before:-inset-4 before:content-['']"
+          aria-label="Close"
         >
+          <span className="text-xl leading-none">✕</span>
+        </button>
+
+        <div className="col-start-1 space-y-[1em] leading-relaxed">
           <p>
             A script takes an hourly wind reading for wherever I am and draws its path over time: direction sets which way the line goes, speed sets how far.
           </p>
