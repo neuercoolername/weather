@@ -61,10 +61,10 @@ function AboutPanel({
         }
       >
         <div className="space-y-[1em] leading-relaxed">
-          <p>Wind is a collection of fragments that grows on the wind’s schedule.</p>
+          <p>Wind is a collection that grows on the wind’s schedule.</p>
           <p>
             A script records the wind wherever I am and traces its path over time. Whenever that
-            path crosses itself, I add a short text or a photograph.
+            path crosses itself, I add a note.
           </p>
         </div>
         {/* The glyph's own box is the layout footprint, so the gap is exactly columnGap; the
