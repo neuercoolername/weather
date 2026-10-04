@@ -37,7 +37,7 @@ timings.
   the element it's on, so applying it to `body` itself would have pulsed the trace and headline's
   brightness too). Respects `prefers-reduced-motion`.
 - **Placement**: a fixed, `z-index: -1` layer rendered from `app/(trace)/page.tsx` (both the normal
-  and empty-trace branches), not `app/layout.tsx`/`body` — admin and viewer-login are tools, not part
+  and empty-trace branches), not `app/layout.tsx`/`body` — admin is a tool, not part
   of the art object, and stay unaffected.
 - **Staleness**: the page is `force-dynamic` with no live polling anywhere in the app; a tab left open
   across an actual bucket change won't update until reload, consistent with the rest of the site.

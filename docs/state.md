@@ -191,26 +191,19 @@ Single-password admin interface at `/admin/*` for editing intersection text and 
   one — so it builds one from the forwarded/Host headers (`sameOriginUrl`).
 - Key files: `proxy.ts` (Next 16 middleware), `lib/server/auth/redirect.ts`, `lib/server/auth/session-config.ts`, `lib/server/auth/session.ts`, `lib/server/supabase.ts`, `lib/server/auth/rate-limit.ts`, `app/admin/`
 
-### Public access gate ✅
-The trace at `/` sits behind a shared viewer password (`VIEWER_PASSWORD`), separate from
-`ADMIN_PASSWORD` so a read-only link can be handed out without the CMS. It reuses the admin
-machinery wholesale: the same `iron-session` cookie carrying a second flag (`isViewer`), the same
-brute-force limiter, the same host-correct redirects. Admin implies viewer; viewer never implies
-admin.
+### Access gate ✅
+The trace at `/` is open to everyone; only the admin area is gated. (It used to sit behind a shared
+viewer password; that was dropped once the read-only public deploy — the `public` branch — got its
+own URL.)
 
 The rules are a pure function, `accessFor` (`lib/domain/access.ts`), returning
-`allow | viewer-login | admin-login | unauthorized`; `proxy.ts` is only the shell that unseals the
-cookie and turns a verdict into a response.
+`allow | admin-login | unauthorized`; `proxy.ts` is only the shell that unseals the cookie and turns
+a verdict into a response.
 
 `/api/location` must never be gated — the iOS app authenticates with a `Bearer` header and holds no
 cookie, so gating it stops GPS ingest, and nothing about a stalled trace fails loudly. It is kept
 out of the middleware matcher *and* named in `accessFor`'s always-open set, with a test pinning it.
-The matcher lists gated paths explicitly instead of sweeping the site with exclusions, which means a
-future public route must be added there or it ships ungated.
-
-The gate fails closed: an unset `VIEWER_PASSWORD` refuses everyone rather than admitting everyone.
-The variable lives in the server's compose file, outside this repo, so it must be set there *before*
-a deploy carries the gate to production.
+The matcher lists only the admin paths, so anything else ships public.
 
 ### Time-of-day backdrop ✅
 A quiet, alive background for the trace page: eight near-white atmospheric gradients (dawn/morning/
@@ -224,7 +217,7 @@ model — the schema has no such field.
 The breathe animation (`scale`/`filter: brightness` pulse, 12-22s depending on bucket) runs on its
 own fixed, `z-index: -1` layer behind all content, not as a `filter` on a content-bearing element —
 a CSS `filter` paints everything inside the element it's on. Rendered from `app/(trace)/page.tsx`
-only (both the normal and empty-trace branches); admin and viewer-login are unaffected.
+only (both the normal and empty-trace branches); admin is unaffected.
 - Key files: `lib/domain/time-of-day.ts` (`resolveTimeOfDay`, `DEFAULT_TIME_OF_DAY_CONFIG`),
   `lib/server/data/time-of-day.ts` (`getCurrentTimeOfDay`), `app/(trace)/TimeOfDayBackdrop.tsx`,
   `app/globals.css` (`.time-of-day-backdrop`, `@keyframes time-of-day-breathe`).
@@ -336,8 +329,7 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
   local hour → bucket)
 - `app/(trace)/TimeOfDayBackdrop.tsx` — the fixed, non-interactive breathing backdrop layer
 - `lib/domain/access.ts` — `accessFor`, the pure access rules for every gated path
-- `proxy.ts` — Next 16 middleware guarding `/` and `/admin/*`; the shell around `accessFor`
-- `app/viewer-login/page.tsx`, `app/api/viewer-login/route.ts` — the viewer password form and check
+- `proxy.ts` — Next 16 middleware guarding `/admin/*`; the shell around `accessFor`
 - `app/robots.ts` — disallow-all, paired with the `X-Robots-Tag` header in `next.config.ts`
 - `app/api/location/route.ts` — POST endpoint receiving GPS coordinates from iOS app
 - `app/api/admin/login/route.ts`, `app/api/admin/logout/route.ts` — admin auth

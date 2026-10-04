@@ -1,12 +1,11 @@
 // Who may reach which path. Pure, so the rules are testable without a request: `proxy.ts` is
 // only the shell that reads the cookie and turns these verdicts into responses.
 
-export type Access = "allow" | "viewer-login" | "admin-login" | "unauthorized";
+export type Access = "allow" | "admin-login" | "unauthorized";
 
 /** Structural, so `lib/domain` never has to reach into the server-only session module. */
 export interface AccessSession {
   isLoggedIn?: boolean;
-  isViewer?: boolean;
 }
 
 /**
@@ -18,8 +17,6 @@ export interface AccessSession {
  */
 const ALWAYS_OPEN = new Set([
   "/api/location",
-  "/viewer-login",
-  "/api/viewer-login",
   "/admin/login",
   "/api/admin/login",
 ]);
@@ -29,8 +26,8 @@ function isUnder(pathname: string, base: string): boolean {
 }
 
 /**
- * The verdict for one request. Admin implies viewer, never the reverse: an admin session reaches
- * the public trace, a viewer session is turned away from `/admin`.
+ * The verdict for one request. No public/private split here — this deploy has no viewer gate,
+ * only the admin one.
  */
 export function accessFor(session: AccessSession | null, pathname: string): Access {
   if (ALWAYS_OPEN.has(pathname)) return "allow";
@@ -41,5 +38,5 @@ export function accessFor(session: AccessSession | null, pathname: string): Acce
   if (isUnder(pathname, "/api/admin")) return isAdmin ? "allow" : "unauthorized";
   if (isUnder(pathname, "/admin")) return isAdmin ? "allow" : "admin-login";
 
-  return isAdmin || session?.isViewer === true ? "allow" : "viewer-login";
+  return "allow";
 }

@@ -16,8 +16,6 @@ export async function proxy(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     case "admin-login":
       return loginRedirect(req, "/admin/login", pathname);
-    case "viewer-login":
-      return loginRedirect(req, "/viewer-login", pathname);
   }
 }
 
@@ -43,11 +41,10 @@ function loginRedirect(req: NextRequest, loginPath: string, from: string) {
   return NextResponse.redirect(loginUrl, 307);
 }
 
-// Listed explicitly rather than sweeping the site with exclusions, because a sweeping matcher
-// would catch `/api/location` — the iOS app's cookie-less ingest endpoint. The cost is that a
-// route absent from this list is not gated at all: `/` is the only public page today, so any
-// second one has to be added here or it ships open. `accessFor` keeps `/api/location` open a
-// second time in case that ever happens by matcher rather than by hand.
+// Only the admin area is gated; everything else, `/` included, is public by design. Listed
+// explicitly rather than sweeping the site with exclusions, because a sweeping matcher would catch
+// `/api/location` — the iOS app's cookie-less ingest endpoint. `accessFor` keeps `/api/location`
+// open a second time in case that ever happens by matcher rather than by hand.
 export const config = {
-  matcher: ["/", "/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*"],
 };
