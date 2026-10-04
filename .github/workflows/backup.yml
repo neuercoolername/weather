@@ -23,22 +23,57 @@ jobs:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
         run: /usr/lib/postgresql/17/bin/pg_dump "$DIRECT_URL" -Fc -f backup.dump
 
+      # Supabase's own backups cover the database only, not the storage bucket. Keys come from
+      # the database rather than a bucket listing so the images match the dump row for row and
+      # orphaned blobs are left out. Any failed download fails the run: a partial image backup
+      # that looks complete is worse than a red run.
+      - name: Download images
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BUCKET: intersection-images
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_URL" || { echo "SUPABASE_URL is not set"; exit 1; }
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo "SUPABASE_SERVICE_ROLE_KEY is not set"; exit 1; }
+          /usr/lib/postgresql/17/bin/psql "$DIRECT_URL" -At \
+            -c 'select "storageKey" from "IntersectionImage" order by "storageKey"' > keys.txt
+          mkdir images
+          export SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY BUCKET
+          xargs -P 8 -I{} sh -c 'curl -fsS --retry 3 --create-dirs \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -o "images/$1" "$SUPABASE_URL/storage/v1/object/$BUCKET/$1"' _ {} < keys.txt
+          expected=$(wc -l < keys.txt)
+          got=$(find images -type f | wc -l)
+          echo "Downloaded $got of $expected images ($(du -sh images | cut -f1))"
+          test "$got" -eq "$expected"
+          tar -cf images.tar images
+          rm -rf images keys.txt
+
       # Artifacts on a public repository are listable by anyone and downloadable by any
       # authenticated GitHub user, and the dump holds every intersection text. Encrypting
       # here means the artifact is useless without the passphrase. Restore is
-      # `gpg -d backup.dump.gpg > backup.dump` before the usual pg_restore.
+      # `gpg -d backup.dump.gpg > backup.dump` before the usual pg_restore, and
+      # `gpg -d images.tar.gpg | tar -x` for the images, which go back into the bucket under
+      # their path below images/ (that path is the row's storageKey).
       - name: Encrypt backup
         env:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           test -n "$BACKUP_PASSPHRASE" || { echo "BACKUP_PASSPHRASE is not set"; exit 1; }
-          gpg --batch --yes --symmetric --cipher-algo AES256 \
-            --passphrase "$BACKUP_PASSPHRASE" -o backup.dump.gpg backup.dump
-          rm backup.dump
+          for f in backup.dump images.tar; do
+            gpg --batch --yes --symmetric --cipher-algo AES256 \
+              --passphrase "$BACKUP_PASSPHRASE" -o "$f.gpg" "$f"
+            rm "$f"
+          done
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
           name: db-backup-${{ github.run_id }}
-          path: backup.dump.gpg
+          path: |
+            backup.dump.gpg
+            images.tar.gpg
           retention-days: 90
