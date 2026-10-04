@@ -1,16 +1,16 @@
 # weather
 
-A personal weather display. An iOS app posts my GPS coordinates to this server; it fetches current conditions from Open-Meteo every hour and uses the wind to extend a cumulative trace — a single line displaced, observation by observation, by wind direction and speed. Where that line crosses itself, two moments in time are linked. Those crossings are the subject: each one is a place where I can write something and attach photographs.
+A personal weather display. I set my position by hand in the admin panel; the server fetches current conditions for it from Open-Meteo every hour and uses the wind to extend a cumulative trace — a single line displaced, observation by observation, by wind direction and speed. Where that line crosses itself, two moments in time are linked. Those crossings are the subject: each one is a place where I can write something and attach photographs.
 
 ## how it works
 
-1. **[iOS app](https://github.com/neuercoolername/ios-gps-tracker) → `POST /api/location`** — sends `{ lat, lon }` with a `Bearer $API_KEY` header. The location is saved and a weather fetch kicks off in the background. There's a web fallback at `/admin/location` for setting the position by hand.
-2. **Open-Meteo** — free weather API, no key needed. Requests temperature, apparent temperature, humidity, precipitation, weather code, cloud cover, wind speed / direction / gusts, and a day/night flag. The full response is kept as `rawJson` on the snapshot.
-3. **Hourly cron** — `instrumentation.ts` starts a node-cron schedule that re-fetches weather for the most recent location every hour at :00.
+1. **`/admin/location`** — the position is set here, by typing lat/lon or taking the browser's geolocation. Saving only records the location; it does not fetch weather itself, so the new position takes effect at the next hourly run.
+2. **Open-Meteo** — free weather API, no key needed. Requests temperature, apparent temperature, humidity, precipitation, weather code, cloud cover, wind speed / direction / gusts, and a day/night flag. Rate limits and server errors are retried with backoff. The full response is kept as `rawJson` on the snapshot.
+3. **Hourly cron** — `instrumentation.ts` starts a node-cron schedule that re-fetches weather for the most recent location every hour at minute 7.
 4. **Wind trace** — each observation appends a point by displacing from the last position by wind direction (degrees) and wind speed (km/h). Stored as `TracePoint`; the origin is `(0, 0)` and the units are km/h, not geographic. The new segment is then tested against every prior segment, and any crossing is stored as an `Intersection`.
 5. **Email** — a new intersection sends a plain-text notification via Resend with a direct link to that intersection's admin page. Fire-and-forget: a failed send never breaks the weather cycle.
-6. **Writing** — the text and images on an intersection are written by hand in the admin CMS at `/admin/intersections`. Only intersections that have writing or images get a mark on the public trace; the rest stay part of the line.
-7. **`/`** — the whole accumulated path as one SVG line, with zoom and pan. The line's stroke and the crossing marks come off the same curve, so they hold the same weight at every zoom; marks that crowd together collapse into one ring, and clicking it travels in until the group comes apart. Clicking a single mark pans it to centre and opens a panel with the two dates, the writing, and any images (full-screen on mobile). The header is not type but an animated wind field — a quiver of short strokes whose statistics come from the last 24 hours of real readings. The favicon is one of the header's own tapered strokes, blown up to fill the tile and snapped to one of the 8 major compass points: the same 24-hour mean direction, tapering the way the wind blows. The page is public; the site is excluded from search indexing.
+6. **Writing** — the text and images on an intersection are written by hand in the admin CMS at `/admin/intersections`. Uploaded images are re-encoded to WebP on the server (HEIC included). Only intersections that have writing or images get a mark on the public trace; the rest stay part of the line.
+7. **`/`** — the whole accumulated path as one SVG line, with zoom and pan. The line's stroke and the crossing marks come off the same curve, so they hold the same weight at every zoom; marks that crowd together collapse into one ring, and clicking it travels in until the group comes apart. Clicking a single mark pans it to centre and opens a panel with the two dates, the writing, and any images (full-screen on mobile). The header is not type but an animated wind field — a quiver of short strokes whose statistics come from the last 24 hours of real readings. Behind everything, a slowly breathing backdrop follows the time of day at the current location. A small ring in the bottom-left corner opens an About panel. The favicon is one of the header's own tapered strokes, blown up to fill the tile and snapped to one of the 8 major compass points: the same 24-hour mean direction, tapering the way the wind blows. The site is excluded from search indexing.
 
 ## stack
 
@@ -18,7 +18,9 @@ A personal weather display. An iOS app posts my GPS coordinates to this server; 
 - PostgreSQL + Prisma — locations, weather snapshots, trace points, intersections, images
 - d3-zoom + d3-selection — zoom/pan and the fixed-pixel SVG overlay
 - Canvas — the flow-field header
+- Tailwind CSS 4
 - iron-session — single-password admin auth, enforced in `proxy.ts`
+- sharp + heic-convert — image re-encoding on upload
 - Supabase Storage — intersection images in a private bucket, served via signed URLs
 - Resend — intersection notification email
 - Open-Meteo — weather data
@@ -31,17 +33,20 @@ Copy `.env.example` to `.env` and fill it in:
 | | |
 |---|---|
 | `DATABASE_URL`, `DIRECT_URL` | Postgres — pooled connection and the direct one used for migrations |
-| `API_KEY` | shared secret the iOS app sends as `Bearer` |
 | `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `EMAIL_FROM` | intersection notification email |
 | `BASE_URL` | origin only — **no path, no trailing slash**, or every emailed admin link 404s |
 | `ADMIN_PASSWORD`, `SESSION_SECRET` | admin CMS login (session secret must be 32+ chars) |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | image storage; server-only, never exposed to the client |
+| `SUPABASE_BUCKET` | `intersection-images-dev` locally; unset means production — see below |
+| `WEATHER_CRON` | optional, local only: `1` runs the hourly fetch against the local database |
+| `BACKUP_PASSPHRASE` | optional, for `db:restore` of an encrypted backup; prompted for if unset |
 
 ```
-npm run db:up    # local Postgres (docker compose)
-npm run dev      # local server
-npm test         # vitest
-npm run build    # production build
+npm run dev        # local server (starts the local Postgres first)
+npm test           # vitest
+npm run lint       # eslint
+npm run typecheck  # tsc
+npm run build      # production build
 ```
 
 ### databases
@@ -50,6 +55,7 @@ npm run build    # production build
 
 ```
 npm run db:up                        # start it (waits for healthy)
+npm run db:down                      # stop it, keeping the data
 npm run db:restore -- backup.dump    # load a production dump into it
 npm run db:psql                      # a shell on it
 npm run db:reset                     # destroy the volume and start clean
@@ -65,7 +71,9 @@ Schema changes go through `npx prisma migrate dev --name <description>` against 
 
 **Writing to production** happens in exactly two places: `prisma migrate deploy` on merge to `main`, and the manually dispatched *Run production script* workflow, which is the only thing that sets `ALLOW_PROD=1`. `reset-trace` is local-only and no override unlocks it.
 
-**Deploy** — pushing to `main` runs `.github/workflows/deploy.yml`: it builds the Docker image and pushes it to `ghcr.io/neuercoolername/weather:latest`, applies `prisma migrate deploy`, then pulls and restarts the container on the server over a cloudflared SSH tunnel. A separate workflow takes a daily `pg_dump` backup, GPG-encrypted with `BACKUP_PASSPHRASE` before upload — this repository is public, and a plain artifact would put every intersection text within reach of any authenticated GitHub user. `npm run db:restore -- backup.dump.gpg` decrypts on the way in.
+**CI & deploy** — `.github/workflows/deploy.yml` runs typecheck, lint and tests on every pull request and push. On `main`, once those pass, it builds the Docker image and pushes it to `ghcr.io/neuercoolername/weather:latest`, applies `prisma migrate deploy`, then pulls and restarts the container on the server over a cloudflared SSH tunnel.
+
+**Backups** — a separate workflow runs daily: a `pg_dump` of the database, plus every image the `IntersectionImage` rows reference, downloaded from the production bucket into a tarball. Both are GPG-encrypted with `BACKUP_PASSPHRASE` before upload as `backup.dump.gpg` and `images.tar.gpg` — this repository is public, and a plain artifact would put every intersection text within reach of any authenticated GitHub user. `npm run db:restore -- backup.dump.gpg` decrypts on the way in. For the images, `gpg -d images.tar.gpg | tar -x`; each file's path below `images/` is its row's `storageKey`, which is where it goes back into the bucket.
 
 ### scripts
 

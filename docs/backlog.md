@@ -15,6 +15,15 @@
   are only reachable by stepping through everything else. Walking within the group first, then out
   to the global list, would make that fallback feel deliberate rather than lossy.
 
+- [ ] **Remove the iOS ingest path** — the position is only ever set by hand at `/admin/location`
+  now; the iOS app is stale. Remove `app/api/location/route.ts`, `API_KEY` (`.env.example`, the
+  server env), the `/api/location` exemption in `lib/domain/access.ts` and its test, and the matcher
+  comment in `proxy.ts` that exists only to protect it. Then a pass over everything public-facing
+  (About copy in `lib/domain/about.ts` / `AboutPanel.tsx`, page metadata) so nothing a visitor sees
+  refers to a phone app or GPS tracker. Once the endpoint is gone, the admin save should probably
+  kick off the immediate weather fetch it used to — today a new position waits for the next hourly
+  run.
+
 ## Someday
 
 - [ ] **Weave gap — continuous rendering** — the current weave logic (`lib/domain/trace-weave.ts`) applies gaps to the chronologically older segment at each self-crossing. Because the gap must stay within the bounds of a discrete backend segment, there is a hard constraint triangle: a gap cannot simultaneously be (1) large/visible, (2) symmetric (centered on the crossing), and (3) bounded by the segment endpoints. The current formula sacrifices (2) — it uses an asymmetric per-side cap (`gBefore = min(gapHalf, distBefore)`, `gAfter = min(gapHalf, distAfter)`), so gaps near a segment endpoint skew visually toward one side. The root cause is that the presentation layer is aware of backend segment boundaries. The clean fix is a continuous rendering model: treat the trace as a single parametric polyline, represent intersections as crossing parameters along that polyline (not as segment endpoint IDs), and apply fixed-size gaps centered on those parameters — entirely independent of where segment boundaries happen to fall.
@@ -23,5 +32,5 @@
 
 *Testing*
 - [ ] **Integration tests** — no integration test infrastructure yet. Would catch convention-mismatch bugs (computation vs. rendering) that unit tests miss. Needs a test harness that can assert on rendered output or at minimum on the full computation→DB→query pipeline.
-- [ ] **Off-site backups** — `backup.yml` writes to a GitHub artifact, so the only copy of the data lives with the same vendor as the repo and expires after 90 days. Storage blobs are not backed up at all.
+- [ ] **Off-site backups** — `backup.yml` writes the database dump and the image blobs to a GitHub artifact, so the only copy of the data lives with the same vendor as the repo and expires after 90 days.
 - [ ] **E2E tests**
