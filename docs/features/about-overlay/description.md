@@ -8,8 +8,8 @@ A small info button at the bottom left of the trace page opens a short explanati
   hover or while open it darkens and breathes on the marks' period.
 - **Overlay**: a white sheet sliding in from the left, mirroring the intersection panel on the right
   (hairline border, 24px padding, `✕` glyph). A two-column grid (text at its measure, then
-  the ✕, level with the meta line) sets its width; nothing is a fraction of the page. Full-screen on mobile.
-- **Contents**: one Plex Mono meta line with real counts, then two short Literata paragraphs.
+  the ✕, level with the first line of text) sets its width; nothing is a fraction of the page. Full-screen on mobile.
+- **Contents**: short Literata paragraphs, no meta line.
 
 Prototype: https://claude.ai/artifact/HyD6wSYMovBmXKDM3jEZ6W (direction 1).
 
@@ -27,7 +27,4 @@ Prototype: https://claude.ai/artifact/HyD6wSYMovBmXKDM3jEZ6W (direction 1).
 | gap, text column to ✕ | 16px |
 
 ## Copy
-Meta line, computed from the data: `17 Feb 2026 – now · 4,558 hours · 140 crossings`
-(first trace point's date, number of trace points, number of crossings with text).
-
-The two paragraphs live in `app/(trace)/AboutPanel.tsx`.
+The paragraphs live in `app/(trace)/AboutPanel.tsx`.

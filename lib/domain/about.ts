@@ -1,4 +1,4 @@
-// The About button and panel: tuned values and the panel's meta line (pure / no DOM).
+// The About button and panel: tuned values (pure / no DOM).
 // Tuned in the prototype; see docs/features/about-overlay.
 
 export interface AboutParams {
@@ -22,7 +22,7 @@ export interface AboutParams {
   slideMs: number;
   /** copy size, px */
   textPx: number;
-  /** width of the text column, in the copy's characters; the meta line shares it */
+  /** width of the text column, in the copy's characters */
   measureCh: number;
   /** space between the text column and the close button, px */
   closeGapPx: number;
@@ -42,15 +42,3 @@ export const DEFAULT_ABOUT_PARAMS: AboutParams = {
   measureCh: 46,
   closeGapPx: 16,
 };
-
-/** "17 Feb 2026 – now · 4,558 hours · 140 crossings" */
-export function aboutMeta(since: Date, hours: number, crossings: number): string {
-  const date = new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "Europe/Berlin",
-  }).format(since);
-  const count = (n: number) => n.toLocaleString("en-GB");
-  return `${date} – now · ${count(hours)} hours · ${count(crossings)} crossings`;
-}

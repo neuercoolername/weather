@@ -34,8 +34,6 @@ interface Props {
   windField: WindField | null;
   /** this load's Beaufort phrase as headline text — shown whenever no crossing is */
   phrase: string;
-  /** the About panel's meta line, formatted on the server */
-  aboutMeta: string;
   /** override any of the tuned mark/weight values */
   params?: Partial<TraceMarkParams>;
 }
@@ -49,7 +47,6 @@ export default function TraceSVG({
   intersections,
   windField,
   phrase,
-  aboutMeta,
   params: paramOverrides,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -294,7 +291,6 @@ export default function TraceSVG({
 
       <AboutPanel
         open={aboutOpen}
-        meta={aboutMeta}
         params={DEFAULT_ABOUT_PARAMS}
         onClose={handleCloseAbout}
         returnFocusRef={aboutButtonRef}

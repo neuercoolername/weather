@@ -3,8 +3,6 @@ import { getTracePoints } from "@/lib/server/data/trace-points";
 import { getCurrentWindField } from "@/lib/server/data/wind";
 import { getCurrentTimeOfDay } from "@/lib/server/data/time-of-day";
 import { randomPhrase } from "@/lib/domain/beaufort";
-import { aboutMeta } from "@/lib/domain/about";
-import { hasContent } from "@/lib/domain/intersection-content";
 import TraceSVG from "./TraceSVG";
 import TimeOfDayBackdrop from "./TimeOfDayBackdrop";
 
@@ -27,16 +25,6 @@ export default async function Home() {
     );
   }
 
-  // Formatted here rather than in the browser, so the server and client render the same text.
-  const since = new Date(
-    Math.min(...tracePoints.map((p) => new Date(p.snapshot.fetchedAt).getTime()))
-  );
-  const meta = aboutMeta(
-    since,
-    tracePoints.length,
-    intersections.filter((ix) => hasContent(ix.text)).length
-  );
-
   return (
     <div className="w-full h-screen">
       <TimeOfDayBackdrop look={timeOfDay} />
@@ -45,7 +33,6 @@ export default async function Home() {
         intersections={intersections}
         windField={windField}
         phrase={randomPhrase().text}
-        aboutMeta={meta}
       />
     </div>
   );
