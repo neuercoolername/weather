@@ -1,18 +1,18 @@
 import { getAllIntersectionsWithImages } from "@/lib/server/data/intersections";
 import { getTracePoints } from "@/lib/server/data/trace-points";
-import { getCurrentWindField } from "@/lib/server/data/wind";
+import { getCurrentWind } from "@/lib/server/data/wind";
 import { getCurrentTimeOfDay } from "@/lib/server/data/time-of-day";
-import { randomPhrase } from "@/lib/domain/beaufort";
+import { beaufortForce, closestPhrase, randomPhrase } from "@/lib/domain/beaufort";
 import TraceSVG from "./TraceSVG";
 import TimeOfDayBackdrop from "./TimeOfDayBackdrop";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [tracePoints, intersections, windField, timeOfDay] = await Promise.all([
+  const [tracePoints, intersections, wind, timeOfDay] = await Promise.all([
     getTracePoints(),
     getAllIntersectionsWithImages(),
-    getCurrentWindField(),
+    getCurrentWind(),
     getCurrentTimeOfDay(),
   ]);
 
@@ -31,8 +31,13 @@ export default async function Home() {
       <TraceSVG
         tracePoints={tracePoints}
         intersections={intersections}
-        windField={windField}
-        phrase={randomPhrase().text}
+        windField={wind.field}
+        phrase={
+          (wind.meanSpeed === null
+            ? randomPhrase()
+            : closestPhrase(beaufortForce(wind.meanSpeed))
+          ).text
+        }
       />
     </div>
   );

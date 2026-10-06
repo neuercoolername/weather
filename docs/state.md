@@ -235,8 +235,9 @@ the letterforms, faint outside) instead of plain type. The turbulence is a synth
 statistics match the real wind reading: mean flow from direction + speed, turbulence intensity from the
 gust factor (`TI = (G−1)/3`), a slow direction meander from the 24h circular variance, a gust "pulse",
 and length variance that ramps with wind speed (stormy feel). The wind reading drives *motion only* —
-the text is a phrase from the Beaufort wind scale by default, drawn at random on every page load
-(`lib/domain/beaufort.ts`, e.g. "Felt on face"), or the crossing's two dates in compact
+the text is a phrase from the Beaufort wind scale by default (`lib/domain/beaufort.ts`, e.g. "Felt
+on face"): the one closest to the Beaufort force of the last 24h mean wind, calm hours included
+(random among equally close phrases; random from the whole list if there is no wind data), or the crossing's two dates in compact
 `D/M/YY × D/M/YY` form when an intersection is hovered/active.
 
 Every title shares one fixed size (64px, the size "Wind" always had), so the page reads the same
@@ -307,7 +308,7 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `lib/server/auth/redirect.ts` — `redirectToPath`, `sameOriginUrl`, `safeNextPath` (host-correct auth redirects)
 - `lib/domain/trace-viewport.ts` — `computeFitTransform`, `projectToScreen` (pure viewport maths)
 - `lib/server/data/trace-points.ts` — `getTracePoints` (ordered points for the public view)
-- `lib/server/data/wind.ts` — `getCurrentWindField` (snapshots → `WindField`, keeps rawJson server-side)
+- `lib/server/data/wind.ts` — `getCurrentWind` (snapshots → `WindField` + calm-inclusive mean speed, keeps rawJson server-side)
 - `lib/server/data/intersections.ts` — public/admin intersection queries + signed image URLs; `IntersectionWithImages` type
 - `lib/server/images.ts` — upload processing (HEIC decode, orient, downscale, WebP encode); `IMAGE_CONFIG`
 - `lib/server/image-urls.ts` — batched + memoised signed URLs; URLs are held for half their validity
@@ -322,11 +323,11 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `lib/domain/mark-shape.ts` — hand-drawn ring generator: `RingShapeParams`, style weights, unit-radius path (pure)
 - `app/(trace)/ring-shapes.ts` — per-page-load ring cache per crossing id, unit circle until hydrated
 - `lib/domain/flow-field.ts` — pure parameterised wind flow-field engine (Perlin/fBm, curl, Reynolds decomposition, length ramp)
-- `lib/domain/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats)
+- `lib/domain/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats), `meanWindSpeed`
 - `app/(trace)/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
 - `app/(trace)/flow-field-renderer.ts` — the canvas draw loop the headline component wraps
 - `lib/domain/trace-headline.ts` — the header text (the phrase | `D/M/YY × D/M/YY` | + ` +n`) (pure)
-- `lib/domain/beaufort.ts` — the Beaufort phrase list and `randomPhrase` (pure)
+- `lib/domain/beaufort.ts` — the Beaufort phrase list, `beaufortForce`, `closestPhrase`, `randomPhrase` (pure)
 - `lib/domain/headline-layout.ts` — `HeadlineLayoutParams` (fixed size, fade, compact threshold) (pure)
 - `app/(trace)/TraceHeader.tsx` — positions the flow-field headline; takes its text as a prop
 - `app/(trace)/TraceDots.tsx` — the marks layer; one element per group, not per intersection

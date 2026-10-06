@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { compass8Index, computeWindField, type WindReading } from "./wind-field";
+import { compass8Index, computeWindField, meanWindSpeed, type WindReading } from "./wind-field";
 
 describe("computeWindField", () => {
   it("returns null for empty or unusable input", () => {
@@ -78,5 +78,20 @@ describe("compass8Index", () => {
     expect(compass8Index(-45)).toBe(7); // NW
     expect(compass8Index(450)).toBe(2); // E
     expect(compass8Index(-360)).toBe(0);
+  });
+});
+
+describe("meanWindSpeed", () => {
+  it("counts calm hours rather than dropping them", () => {
+    expect(meanWindSpeed([
+      { spd: 0, gust: 0, dir: 0 },
+      { spd: 10, gust: 20, dir: 90 },
+    ])).toBeCloseTo(5);
+  });
+
+  it("tells dead calm (0) from no data (null)", () => {
+    expect(meanWindSpeed([{ spd: 0, gust: 0, dir: 0 }])).toBe(0);
+    expect(meanWindSpeed([])).toBeNull();
+    expect(meanWindSpeed([{ spd: NaN, gust: 0, dir: 0 }])).toBeNull();
   });
 });
