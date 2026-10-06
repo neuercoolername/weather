@@ -40,7 +40,7 @@ export const BEAUFORT_PHRASES: readonly BeaufortPhrase[] = [
   // { text: "Considerable structural damage occurs", force: 10, group: "land" },
 
   { text: "Sea like a mirror", force: 0, group: "sea" },
-  { text: "Ripples with the appearance of scales", force: 1, group: "sea" },
+  // { text: "Ripples with the appearance of scales", force: 1, group: "sea" },
   // { text: "Without foam crests", force: 1, group: "sea" },
   // { text: "Crests have a glassy appearance", force: 2, group: "sea" },
   // { text: "And do not break", force: 2, group: "sea" },
