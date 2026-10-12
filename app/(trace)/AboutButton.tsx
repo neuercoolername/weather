@@ -36,7 +36,7 @@ export default function AboutButton({
       aria-expanded={open}
       aria-label="About this page"
       title="about"
-      className={`about-button absolute z-10 flex items-center justify-center text-zinc-600 hover:text-zinc-900 aria-expanded:text-zinc-900 ${open ? "invisible" : ""}`}
+      className={`about-button absolute z-10 flex cursor-pointer items-center justify-center text-zinc-600 hover:text-zinc-900 aria-expanded:text-zinc-900 ${open ? "invisible" : ""}`}
       style={
         {
           left: offset,
