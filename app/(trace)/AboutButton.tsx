@@ -7,6 +7,8 @@ const HIT_PX = 48;
 // A crossing-style ring around an italic i. The ring's shape comes from a fixed seed, so
 // server and client draw the same one. Growth and breathing are CSS (globals.css): the
 // outer layer grows on hover/open, the inner one breathes, so breathing starts from rest.
+// Bottom-left. It sits above the trace but under both panels (z-20), so the full-screen
+// mobile panels cover it.
 export default function AboutButton({
   open,
   onToggle,
@@ -34,7 +36,7 @@ export default function AboutButton({
       aria-expanded={open}
       aria-label="About this page"
       title="about"
-      className={`about-button absolute z-30 flex items-center justify-center text-zinc-600 hover:text-zinc-900 aria-expanded:text-zinc-900 ${open ? "invisible" : ""}`}
+      className={`about-button absolute z-10 flex items-center justify-center text-zinc-600 hover:text-zinc-900 aria-expanded:text-zinc-900 ${open ? "invisible" : ""}`}
       style={
         {
           left: offset,
