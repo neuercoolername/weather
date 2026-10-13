@@ -7,6 +7,7 @@ import "server-only";
 import { prisma } from "@/lib/server/prisma";
 import {
   computeWindField,
+  meanWindSpeed,
   type WindField,
   type WindReading,
 } from "@/lib/domain/wind-field";
@@ -16,8 +17,15 @@ interface RawCurrent {
   wind_direction_10m?: number;
 }
 
-/** The current wind field, derived from the last 24 hourly snapshots (null if none). */
-export async function getCurrentWindField(): Promise<WindField | null> {
+export interface CurrentWind {
+  /** flow-field parameters (null if no snapshots, or every hour was calm) */
+  field: WindField | null;
+  /** mean wind speed, km/h, calm hours included (null only if no snapshots) */
+  meanSpeed: number | null;
+}
+
+/** The current wind, derived from the last 24 hourly snapshots. */
+export async function getCurrentWind(): Promise<CurrentWind> {
   const rows = await prisma.weatherSnapshot.findMany({
     orderBy: { fetchedAt: "desc" },
     take: 24,
@@ -33,5 +41,5 @@ export async function getCurrentWindField(): Promise<WindField | null> {
     };
   });
 
-  return computeWindField(series);
+  return { field: computeWindField(series), meanSpeed: meanWindSpeed(series) };
 }

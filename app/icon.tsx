@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { getCurrentWindField } from "@/lib/server/data/wind";
+import { getCurrentWind } from "@/lib/server/data/wind";
 import { CALM_WIND_FIELD } from "@/lib/domain/flow-field";
 import { windGlyphPath, type WindGlyphParams } from "@/lib/domain/wind-glyph";
 
@@ -23,7 +23,7 @@ const GLYPH: Partial<WindGlyphParams> = {
 };
 
 export default async function Icon() {
-  const field = (await getCurrentWindField()) ?? CALM_WIND_FIELD;
+  const field = (await getCurrentWind()).field ?? CALM_WIND_FIELD;
 
   return new ImageResponse(
     <div

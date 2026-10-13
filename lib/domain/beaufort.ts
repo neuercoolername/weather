@@ -1,4 +1,6 @@
-// Phrases from the Beaufort wind scale. Each page load draws one as the trace's headline.
+// Phrases from the Beaufort wind scale. Each page load shows the one closest to the
+// last 24h mean wind as the trace's headline — random among equally close phrases,
+// and random from the whole list when there is no wind data.
 
 export interface BeaufortPhrase {
   text: string;
@@ -63,4 +65,29 @@ export const BEAUFORT_PHRASES: readonly BeaufortPhrase[] = [
 
 export function randomPhrase(rand: () => number = Math.random): BeaufortPhrase {
   return BEAUFORT_PHRASES[Math.floor(rand() * BEAUFORT_PHRASES.length)];
+}
+
+/**
+ * Continuous Beaufort force for a wind speed in km/h, from the scale's defining
+ * relation v = 0.836 · B^1.5 (m/s), clamped to 0–12. Rounded, it is the familiar
+ * force number; the fraction lets the speed decide which side of a gap is nearer.
+ */
+export function beaufortForce(kmh: number): number {
+  const ms = Math.max(0, kmh) / 3.6;
+  return Math.min(12, (ms / 0.836) ** (2 / 3));
+}
+
+/**
+ * The phrase whose force is nearest `force`; random among all equally near, so a
+ * force with several phrases varies between page loads. Gaps in the list resolve
+ * to the nearest force on either side.
+ */
+export function closestPhrase(
+  force: number,
+  rand: () => number = Math.random,
+  phrases: readonly BeaufortPhrase[] = BEAUFORT_PHRASES
+): BeaufortPhrase {
+  const best = Math.min(...phrases.map((p) => Math.abs(p.force - force)));
+  const nearest = phrases.filter((p) => Math.abs(p.force - force) === best);
+  return nearest[Math.floor(rand() * nearest.length)];
 }

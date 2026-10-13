@@ -71,3 +71,14 @@ export function computeWindField(series: WindReading[]): WindField | null {
 
   return { dirDeg, meanSpeed, gustFactor, TI, meanderDeg };
 }
+
+/**
+ * Mean wind speed (km/h) over every finite reading, calm hours (0) included —
+ * unlike `computeWindField`, which drops them. Null only when nothing is usable,
+ * so "no data" and "dead calm" stay distinguishable.
+ */
+export function meanWindSpeed(series: WindReading[]): number | null {
+  const speeds = series.map((r) => r.spd).filter((s) => Number.isFinite(s) && s >= 0);
+  if (speeds.length === 0) return null;
+  return speeds.reduce((s, x) => s + x, 0) / speeds.length;
+}
