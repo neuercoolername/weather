@@ -17,7 +17,8 @@ export interface TraceCamera {
   fitScale(points: { x: number; y: number }[], padding: number): number | null;
   /** Fit all points into the current viewport (instant). Returns the fit scale. */
   fit(points: { x: number; y: number }[], padding: number): number | null;
-  /** Animate from the current transform to `target`. Cancels any in-flight animation. */
+  /** Animate from the current transform to `target` (a duration of 0 jumps). Cancels any
+   *  in-flight animation. */
   animateTo(target: ZoomTransform, opts?: { duration?: number }): void;
   destroy(): void;
 }
@@ -76,6 +77,12 @@ export function createTraceCamera(
       if (raf) cancelAnimationFrame(raf);
       const from = current;
       const duration = opts?.duration ?? PAN_DURATION;
+      // Zero means "be there now"; easing over it would divide 0 by 0.
+      if (duration <= 0) {
+        raf = 0;
+        apply(target);
+        return;
+      }
       const start = performance.now();
       const step = (now: number) => {
         const p = Math.min((now - start) / duration, 1);
