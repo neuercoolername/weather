@@ -38,7 +38,7 @@ export default async function Home() {
   );
 
   return (
-    <div className="w-full h-screen">
+    <div className="w-full h-dvh">
       <TimeOfDayBackdrop look={timeOfDay} />
       <TraceSVG
         tracePoints={tracePoints}
