@@ -14,6 +14,7 @@ on:
         options:
           - backfill-images
           - backfill-trace
+          - renumber-intersections
       apply:
         description: Write changes (leave unchecked for a dry run)
         type: boolean
@@ -89,5 +90,6 @@ jobs:
           case "$SCRIPT" in
             backfill-images) npm run backfill:images -- "${FLAGS[@]}" ;;
             backfill-trace)  npm run backfill:trace ;;
+            renumber-intersections) npm run renumber:intersections -- "${FLAGS[@]}" ;;
             *) echo "::error::unknown script '$SCRIPT'"; exit 1 ;;
           esac
