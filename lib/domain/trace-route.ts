@@ -43,3 +43,15 @@ export function traceHref(view: TraceView): string {
       return `/${view.id}`;
   }
 }
+
+export type HistoryMode = "push" | "replace" | "close";
+
+/**
+ * How moving from one view to another should touch history. Opening from the bare trace
+ * pushes, so Back closes; moving between panels replaces, so Back never steps through every
+ * crossing visited; going to the bare trace closes whatever is open.
+ */
+export function historyMode(current: TraceView, next: TraceView): HistoryMode {
+  if (next.kind === "trace") return "close";
+  return current.kind === "trace" ? "push" : "replace";
+}

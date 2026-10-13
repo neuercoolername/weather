@@ -11,6 +11,7 @@ import {
 } from "@/lib/domain/trace-marks";
 import type { IntersectionWithImages } from "@/lib/server/data/intersections";
 import IntersectionDot from "./IntersectionDot";
+import type { MarkBreathing } from "./mark-breathing";
 import { useRingShapes } from "./ring-shapes";
 
 // The interactive marks layer. One element per *group*, not per intersection:
@@ -22,6 +23,7 @@ export default function TraceDots({
   metrics,
   params,
   activeId,
+  track,
   onActivate,
   onHoverGroup,
 }: {
@@ -29,6 +31,7 @@ export default function TraceDots({
   metrics: MarkMetrics;
   params: TraceMarkParams;
   activeId: number | null;
+  track: MarkBreathing["track"];
   onActivate: (group: MarkGroup<IntersectionWithImages>) => void;
   onHoverGroup: (key: number | null) => void;
 }) {
@@ -66,6 +69,7 @@ export default function TraceDots({
             // Only a hovered or open ring breathes — a resting mark stays put.
             breathing={isActive || isHovered}
             phase={breathingPhase(group.members[0].tracePointA.snapshot.fetchedAt, params)}
+            track={track}
             onClick={(e) => {
               e.stopPropagation();
               onActivate(group);

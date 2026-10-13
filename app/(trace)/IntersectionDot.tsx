@@ -1,3 +1,5 @@
+import type { MarkBreathing } from "./mark-breathing";
+
 interface Props {
   sx: number;
   sy: number;
@@ -9,8 +11,10 @@ interface Props {
   hitRadius: number;
   /** whether this ring is hovered or open — only these breathe */
   breathing: boolean;
-  /** breathing offset; carried on the element so the rAF controller can find it */
+  /** breathing offset, so marks don't pulse in unison */
   phase: number;
+  /** registers the ring with the breathing loop while it breathes */
+  track: MarkBreathing["track"];
   onClick: (e: React.MouseEvent) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -18,9 +22,9 @@ interface Props {
 
 // One mark on the trace. The ring is a unit-radius path scaled to its radius, with a
 // non-scaling stroke so its weight stays in screen px. While hovered or open, that scale
-// is overwritten every frame by mark-breathing.ts, which locates the ring by the data
-// attributes below — React owns the resting value, the controller owns the breath. A
-// resting mark carries no data attributes, so the controller never touches it.
+// is overwritten every frame by mark-breathing.ts, which the ring joins through its ref —
+// React owns the resting value, the controller owns the breath. A resting mark has no ref,
+// so the controller never touches it.
 export default function IntersectionDot({
   sx,
   sy,
@@ -30,6 +34,7 @@ export default function IntersectionDot({
   hitRadius,
   breathing,
   phase,
+  track,
   onClick,
   onMouseEnter,
   onMouseLeave,
@@ -54,8 +59,8 @@ export default function IntersectionDot({
         strokeLinecap="round"
         strokeLinejoin="round"
         pointerEvents="none"
-        data-mark-radius={breathing ? radius : undefined}
-        data-mark-phase={breathing ? phase : undefined}
+        // Re-attached each render, so the loop always holds the current radius.
+        ref={breathing ? (el) => (el ? track(el, radius, phase) : undefined) : undefined}
       />
     </g>
   );
