@@ -199,7 +199,7 @@ model — the schema has no such field.
 
 The breathe animation (`scale`/`filter: brightness` pulse, 12-22s depending on bucket) runs on its
 own fixed, `z-index: -1` layer behind all content, not as a `filter` on a content-bearing element —
-a CSS `filter` paints everything inside the element it's on. Rendered from `app/(trace)/page.tsx`
+a CSS `filter` paints everything inside the element it's on. Rendered from `app/(trace)/[[...slug]]/page.tsx`
 only (both the normal and empty-trace branches); admin is unaffected.
 - Key files: `lib/domain/time-of-day.ts` (`resolveTimeOfDay`, `DEFAULT_TIME_OF_DAY_CONFIG`),
   `lib/server/data/time-of-day.ts` (`getCurrentTimeOfDay`), `app/(trace)/TimeOfDayBackdrop.tsx`,
@@ -246,8 +246,8 @@ so they never appear on touch, where a tap zooms the ring apart instead.
 - Server computes a compact `windField = { dirDeg, meanSpeed, gustFactor, TI, meanderDeg }` from the
   last 24 hourly snapshots (`wind_gusts_10m` + `wind_direction_10m` from `rawJson.current`) — no
   rawJson crosses to the client.
-- Key files: `lib/domain/flow-field.ts`, `lib/domain/wind-field.ts`, `app/(trace)/FlowFieldHeadline.tsx`,
-  `app/(trace)/TraceHeader.tsx`, `app/(trace)/flow-field-renderer.ts`, `app/(trace)/page.tsx`.
+- Key files: `lib/domain/flow-field.ts`, `lib/domain/wind-field.ts`, `app/(trace)/_headline/FlowFieldHeadline.tsx`,
+  `app/(trace)/_headline/TraceHeader.tsx`, `app/(trace)/_headline/flow-field-renderer.ts`, `app/(trace)/[[...slug]]/page.tsx`.
 
 ### About panel ✅
 A small hand-drawn ring around an italic *i*, bottom-left, opens a short explanation of the project
@@ -294,28 +294,28 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `lib/server/data/trace-points.ts` — `getTracePoints` (ordered points for the public view)
 - `lib/server/data/wind.ts` — `getCurrentWind` (snapshots → `WindField` + calm-inclusive mean speed, keeps rawJson server-side)
 - `lib/server/data/intersections.ts` — `getAllIntersections`; `TraceIntersection` type
-- `app/(trace)/page.tsx` — server component (the trace page), fetches trace points + intersections + wind field
+- `app/(trace)/[[...slug]]/page.tsx` — server component (the trace page), fetches trace points + intersections + wind field
 - `app/(trace)/TraceSVG.tsx` — client component, orchestrator
-- `app/(trace)/trace-camera.ts` — d3-zoom controller (`fitScale`, `fit`, `animateTo`, `destroy`)
+- `app/(trace)/_camera/trace-camera.ts` — d3-zoom controller (`fitScale`, `fit`, `animateTo`, `destroy`)
 - `lib/domain/trace-marks.ts` — `TraceMarkParams`, weight curve, grouping, group key, split scale, open action (pure)
-- `app/(trace)/mark-breathing.ts` — rAF controller breathing the marks' radii (as a scale)
+- `app/(trace)/_marks/mark-breathing.ts` — rAF controller breathing the marks' radii (as a scale)
 - `lib/domain/mark-shape.ts` — hand-drawn ring generator: `RingShapeParams`, style weights, unit-radius path (pure)
-- `app/(trace)/ring-shapes.ts` — per-page-load ring cache per crossing id, unit circle until hydrated
+- `app/(trace)/_marks/ring-shapes.ts` — per-page-load ring cache per crossing id, unit circle until hydrated
 - `lib/domain/flow-field.ts` — pure parameterised wind flow-field engine (Perlin/fBm, curl, Reynolds decomposition, length ramp)
 - `lib/domain/wind-field.ts` — `computeWindField` (mean/gust factor/TI/circular direction stats), `meanWindSpeed`
-- `app/(trace)/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
-- `app/(trace)/flow-field-renderer.ts` — the canvas draw loop the headline component wraps
+- `app/(trace)/_headline/FlowFieldHeadline.tsx` — client canvas rendering the header as an animated quiver
+- `app/(trace)/_headline/flow-field-renderer.ts` — the canvas draw loop the headline component wraps
 - `lib/domain/trace-headline.ts` — the header text (the phrase | `D/M/YY × D/M/YY` | + ` +n`) (pure)
 - `lib/domain/beaufort.ts` — the Beaufort phrase list, `beaufortForce`, `closestPhrase`, `randomPhrase` (pure)
 - `lib/domain/headline-layout.ts` — `HeadlineLayoutParams` (fixed size, fade, compact threshold) (pure)
-- `app/(trace)/TraceHeader.tsx` — positions the flow-field headline; takes its text as a prop
-- `app/(trace)/TraceDots.tsx` — the marks layer; one element per group, not per intersection
-- `app/(trace)/IntersectionDot.tsx` — SVG ring + hit area, sized in screen pixels
-- `app/(trace)/IntersectionPanel.tsx` — detail panel (side on desktop, full-screen on mobile), text-only
-- `app/(trace)/PanelNav.tsx` — panel prev/next/close controls
+- `app/(trace)/_headline/TraceHeader.tsx` — positions the flow-field headline; takes its text as a prop
+- `app/(trace)/_marks/TraceDots.tsx` — the marks layer; one element per group, not per intersection
+- `app/(trace)/_marks/IntersectionDot.tsx` — SVG ring + hit area, sized in screen pixels
+- `app/(trace)/_panel/IntersectionPanel.tsx` — detail panel (side on desktop, full-screen on mobile), text-only
+- `app/(trace)/_panel/PanelNav.tsx` — panel prev/next/close controls
 - `lib/domain/about.ts` — `AboutParams`, `DEFAULT_ABOUT_PARAMS`, `aboutMeta` (pure)
-- `app/(trace)/AboutButton.tsx` — the bottom-left ring button
-- `app/(trace)/AboutPanel.tsx` — the About sheet and its copy
+- `app/(trace)/_panel/AboutButton.tsx` — the bottom-left ring button
+- `app/(trace)/_panel/AboutPanel.tsx` — the About sheet and its copy
 - `lib/domain/time-of-day.ts` — `resolveTimeOfDay`, `DEFAULT_TIME_OF_DAY_CONFIG` (pure)
 - `lib/server/data/time-of-day.ts` — `getCurrentTimeOfDay` (latest snapshot's timezone → current
   local hour → bucket)

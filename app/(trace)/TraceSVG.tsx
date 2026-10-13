@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { zoomIdentity, ZoomTransform } from "d3-zoom";
-import { createTraceCamera, type TraceCamera } from "./trace-camera";
-import { createMarkBreathing } from "./mark-breathing";
-import { useTraceNavigation } from "./use-trace-navigation";
+import { createTraceCamera, type TraceCamera } from "./_camera/trace-camera";
+import { createMarkBreathing } from "./_marks/mark-breathing";
+import { useTraceNavigation } from "./_camera/use-trace-navigation";
 import {
   DEFAULT_TRACE_MARK_PARAMS,
   groupKey,
@@ -15,11 +15,11 @@ import {
   type TraceMarkParams,
 } from "@/lib/domain/trace-marks";
 import { traceHeadline } from "@/lib/domain/trace-headline";
-import TraceDots from "./TraceDots";
-import IntersectionPanel from "./IntersectionPanel";
-import TraceHeader from "./TraceHeader";
-import AboutButton from "./AboutButton";
-import AboutPanel from "./AboutPanel";
+import TraceDots from "./_marks/TraceDots";
+import IntersectionPanel from "./_panel/IntersectionPanel";
+import TraceHeader from "./_headline/TraceHeader";
+import AboutButton from "./_panel/AboutButton";
+import AboutPanel from "./_panel/AboutPanel";
 import { DEFAULT_ABOUT_PARAMS } from "@/lib/domain/about";
 import type { WindField } from "@/lib/domain/wind-field";
 import type { TracePoint } from "@/lib/server/data/trace-points";

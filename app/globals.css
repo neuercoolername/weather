@@ -45,7 +45,7 @@ body {
   }
 }
 
-/* About button (app/(trace)/AboutButton.tsx): grows on hover or while open, then breathes
+/* About button (app/(trace)/_panel/AboutButton.tsx): grows on hover or while open, then breathes
    on the marks' period. Two layers, so the breath starts from the grown size, not a jump. */
 .about-grow {
   transition: transform 0.4s ease;

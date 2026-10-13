@@ -30,4 +30,4 @@ Prototype: https://claude.ai/artifact/HyD6wSYMovBmXKDM3jEZ6W (direction 1).
 Meta line, computed from the data: `17 Feb 2026 – now · 4,558 hours · 140 crossings`
 (first trace point's date, number of trace points, number of crossings with text).
 
-The two paragraphs live in `app/(trace)/AboutPanel.tsx`.
+The two paragraphs live in `app/(trace)/_panel/AboutPanel.tsx`.
