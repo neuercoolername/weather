@@ -328,6 +328,7 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `app/api/admin/location/route.ts` — POST location from the admin web form
 - `scripts/backfill-trace.ts` — one-time backfill for pre-existing snapshots
 - `scripts/reset-trace.ts` — deletes all trace points and intersections from DB
+- `scripts/renumber-intersections.sql` — renumbers intersection ids to 1..N; run by hand with psql in the database container
 - `docs/backlog.md` — project backlog
 - `docs/public-fork.md` — why this branch exists and what differs from `main`
 
