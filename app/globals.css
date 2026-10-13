@@ -71,9 +71,34 @@ body {
   }
 }
 
+/* Image loading ring (components/DrawnRingLoader.tsx): the pen draws the ring, it holds,
+   then fades; the fade's end swaps in the next ring. Durations come from the component. */
+.ring-loader {
+  stroke-dasharray: 1;
+  animation:
+    ring-loader-draw var(--ring-draw) ease-in-out both,
+    ring-loader-fade var(--ring-fade) ease-in var(--ring-fade-delay) forwards;
+}
+
+@keyframes ring-loader-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ring-loader-fade {
+  to {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .time-of-day-backdrop,
-  .about-breathe {
+  .about-breathe,
+  .ring-loader {
     animation: none !important;
   }
 }

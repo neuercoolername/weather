@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import DrawnRingLoader from "./DrawnRingLoader";
 
 export interface FrameConfig {
   /** Cross-fade duration from the empty frame to the loaded image, in ms. */
@@ -81,8 +82,13 @@ export default function ImageFrame({
       >
         {/* Without this a failed image is invisible: alt is empty by design, so the
             frame would otherwise sit at full opacity forever with nothing in it. */}
-        {failed && (
+        {failed ? (
           <span className="text-xs text-zinc-400 font-mono">image unavailable</span>
+        ) : (
+          // Fades with the hairline once the image lands, frozen mid-stroke.
+          <span className="text-zinc-500 flex">
+            <DrawnRingLoader paused={loaded} />
+          </span>
         )}
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element -- images are already
