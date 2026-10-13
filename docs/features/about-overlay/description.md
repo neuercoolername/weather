@@ -27,4 +27,4 @@ Prototype: https://claude.ai/artifact/HyD6wSYMovBmXKDM3jEZ6W (direction 1).
 | gap, text column to ✕ | 16px |
 
 ## Copy
-The paragraphs live in `app/(trace)/AboutPanel.tsx`.
+The paragraphs live in `app/(trace)/_panel/AboutPanel.tsx`.
