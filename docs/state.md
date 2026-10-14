@@ -127,16 +127,16 @@ box overshoots and throws the other members off screen. A group that cannot come
 zoom range opens the first of its members instead; only one place in the trace needs this, where
 three crossings sit within 0.02 units of each other and would want `k ≈ 470`.
 
-A hovered or open ring breathes on the flow-field headline's gust period, with the per-mark phase
-taken from the crossing's own `fetchedAt`; a resting ring stays static. The loop is an imperative
-controller (`mark-breathing.ts`) that writes each ring's scale directly, so animation never
-travels through React state — `TraceDots` only lets a hovered/active ring carry the data
-attributes the controller looks for, so a resting ring is never in its animated set. It pauses on
-`visibilitychange` and never starts under `prefers-reduced-motion`, leaving the resting radius.
+A hovered or open ring is redrawn on a loop: the pen draws that mark's own shape
+`loopGrowth` (0.22) larger than rest, holds it, fades it, and draws it again
+(`components/DrawnRingLoop.tsx`, the same loop the image loader uses; timing in
+`TraceMarkParams.loopTiming`, pen speed per turn so a multi-pass ring takes longer). It is two
+chained CSS animations restarted by a key bump, so nothing runs through a frame loop; a resting
+ring stays static. Under `prefers-reduced-motion` the looping ring just stands, whole.
 
 Each ring is hand-drawn (`lib/domain/mark-shape.ts`, knobs in `TraceMarkParams.ringShape`): a
 unit-radius path scaled to the ring's radius with a non-scaling stroke, so one path serves every
-size and breathing only changes the scale. Rings mix four pen styles by weight (overshoot, gap,
+size and the loop only changes the scale. Rings mix four pen styles by weight (overshoot, gap,
 closed, multi-pass); open strokes get a lead-in, a flick-off, a slow wander and a sliding centre so
 passes are neither parallel nor concentric. Shapes are random per page load, not derived from data,
 and cached per crossing id (`ring-shapes.ts`); a group wears its key member's ring, so it keeps its
@@ -270,8 +270,8 @@ so they never appear on touch, where a tap zooms the ring apart instead.
 A small hand-drawn ring around an italic *i*, bottom-left, opens a short explanation of the project
 in a sheet from the left: the intersection panel's mirror, full-screen on mobile. The ring uses the
 crossing rings' pen with a fixed seed (`seededRandom`), so it is the shape chosen in the prototype
-and server and client draw the same one. It grows and breathes on the marks' period while hovered
-or open (CSS, `globals.css`; off under `prefers-reduced-motion`).
+and server and client draw the same one. It grows (CSS, `globals.css`) and is redrawn on the marks'
+drawn loop while hovered or open (static under `prefers-reduced-motion`).
 - Only one panel at a time: opening About closes a crossing's panel, opening a crossing closes
   About, and a click on the empty trace closes both. Zooming into a group leaves About open.
 - The copy lives in `AboutPanel.tsx`; there is no meta line.
@@ -319,7 +319,7 @@ package's own `empty.js` — the same module Next resolves it to under the `reac
 - `app/(trace)/TraceSVG.tsx` — client component, orchestrator
 - `app/(trace)/_camera/trace-camera.ts` — d3-zoom controller (`fitScale`, `fit`, `animateTo`, `destroy`)
 - `lib/domain/trace-marks.ts` — `TraceMarkParams`, weight curve, grouping, group key, split scale, open action (pure)
-- `app/(trace)/_marks/mark-breathing.ts` — rAF controller breathing the marks' radii (as a scale)
+- `components/DrawnRingLoop.tsx` — a pen redrawing one ring on a loop (marks, About button, image loader); timing in `lib/domain/ring-loop.ts`
 - `lib/domain/mark-shape.ts` — hand-drawn ring generator: `RingShapeParams`, style weights, unit-radius path (pure)
 - `app/(trace)/_marks/ring-shapes.ts` — per-page-load ring cache per crossing id, unit circle until hydrated
 - `lib/domain/flow-field.ts` — pure parameterised wind flow-field engine (Perlin/fBm, curl, Reynolds decomposition, length ramp)

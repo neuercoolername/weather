@@ -187,10 +187,22 @@ export function ringPath({ points, closed }: Ring): string {
   return closed ? d + "Z" : d;
 }
 
+export interface RingShape {
+  /** unit-radius SVG path around (0,0) */
+  d: string;
+  /** how many times round the pen goes, so a drawing pen can keep one speed */
+  turns: number;
+}
+
+/** One hand-drawn ring, with how far round its pen travels. */
+export function handDrawnRing(rand: () => number, params: RingShapeParams): RingShape {
+  const ring = ringPoints(rand, pickRingStyle(rand(), params.weights), params);
+  return { d: ringPath(ring), turns: ring.sweep / TURN };
+}
+
 /** One hand-drawn ring as a unit-radius SVG path around (0,0). */
 export function handDrawnRingPath(rand: () => number, params: RingShapeParams): string {
-  const style = pickRingStyle(rand(), params.weights);
-  return ringPath(ringPoints(rand, style, params));
+  return handDrawnRing(rand, params).d;
 }
 
 /** mulberry32: a small seeded generator, for a ring whose shape must repeat. */
@@ -206,3 +218,6 @@ export function seededRandom(seed: number): () => number {
 
 /** The unit circle as a path: what a ring draws before its hand-drawn shape exists. */
 export const UNIT_CIRCLE_PATH = "M1,0A1,1 0 1,1 -1,0A1,1 0 1,1 1,0Z";
+
+/** The unit circle as a ring shape: one turn. */
+export const UNIT_CIRCLE: RingShape = { d: UNIT_CIRCLE_PATH, turns: 1 };

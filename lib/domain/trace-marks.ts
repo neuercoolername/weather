@@ -11,6 +11,7 @@
 // nothing else. See docs/features/trace-marks.
 
 import { DEFAULT_RING_SHAPE_PARAMS, type RingShapeParams } from "./mark-shape";
+import type { RingLoopTiming } from "./ring-loop";
 import { projectToScreen } from "./trace-viewport";
 
 // ---- tunable "feel" parameters (mirror the tuning bench's panel) ----
@@ -37,12 +38,10 @@ export interface TraceMarkParams {
   activeStrokeRatio: number;
   /** invisible hit circle radius, fixed screen px */
   hitRadius: number;
-  /** breathing swing as a fraction of the ring radius */
-  pulseDepth: number;
-  /** breathing minimum swing in px, so small rings still visibly breathe */
-  pulseFloorPx: number;
-  /** breathing period, seconds */
-  pulsePeriodSec: number;
+  /** a hovered or open ring is redrawn on a loop this much larger, fraction of its radius */
+  loopGrowth: number;
+  /** the pen's pace on that loop */
+  loopTiming: RingLoopTiming;
   /** how the hand-drawn ring is drawn (lib/domain/mark-shape) */
   ringShape: RingShapeParams;
 }
@@ -59,9 +58,8 @@ export const DEFAULT_TRACE_MARK_PARAMS: TraceMarkParams = {
   activeGrowth: 1.875,
   activeStrokeRatio: 2,
   hitRadius: 20,
-  pulseDepth: 0.22,
-  pulseFloorPx: 0,
-  pulsePeriodSec: 7.4,
+  loopGrowth: 0.22,
+  loopTiming: { msPerTurn: 1500, holdMs: 600, fadeMs: 500 },
   ringShape: DEFAULT_RING_SHAPE_PARAMS,
 };
 
@@ -275,26 +273,4 @@ export function openAction(
     cx: (Math.min(...xs) + Math.max(...xs)) / 2,
     cy: (Math.min(...ys) + Math.max(...ys)) / 2,
   };
-}
-
-// Breathing radius for a mark. A purely proportional swing vanishes on a small ring
-// (4.5px × 0.22 ≈ 1px reads as static), so the amplitude has a px floor.
-export function breathingRadius(
-  radius: number,
-  seconds: number,
-  phase: number,
-  params: TraceMarkParams
-): number {
-  const amplitude = Math.max(radius * params.pulseDepth, params.pulseFloorPx);
-  const swing = Math.sin((seconds * Math.PI * 2) / params.pulsePeriodSec + phase);
-  return Math.max(0.1, radius + amplitude * swing);
-}
-
-// Per-mark phase offset, so marks don't pulse in unison. Keyed to the moment the
-// crossing was recorded rather than to its coordinates: the rhythm then comes from
-// something the crossing actually is, not from an invented number.
-export function breathingPhase(recordedAt: Date, params: TraceMarkParams): number {
-  const periodMs = params.pulsePeriodSec * 1000;
-  const offset = ((recordedAt.getTime() % periodMs) + periodMs) % periodMs;
-  return (offset / periodMs) * Math.PI * 2;
 }
