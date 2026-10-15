@@ -12,10 +12,8 @@ export interface AboutParams {
   glyphPx: number;
   /** ring scale while hovered or open */
   hoverGrowth: number;
-  /** extra scale at the top of a breath, fraction of the hovered size */
-  pulseDepth: number;
-  /** one breath, seconds — the marks' period */
-  pulsePeriodSec: number;
+  /** while hovered or open the ring is redrawn on a loop this much larger, fraction of the hovered size */
+  loopGrowth: number;
   /** seed for the ring's hand-drawn shape, so it is the one picked in the prototype */
   ringSeed: number;
   /** panel slide in/out, ms */
@@ -34,8 +32,7 @@ export const DEFAULT_ABOUT_PARAMS: AboutParams = {
   ringStroke: 1,
   glyphPx: 17,
   hoverGrowth: 1.12,
-  pulseDepth: 0.12,
-  pulsePeriodSec: 7.4,
+  loopGrowth: 0.12,
   ringSeed: 7,
   slideMs: 320,
   textPx: 15,

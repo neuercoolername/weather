@@ -45,8 +45,8 @@ body {
   }
 }
 
-/* About button (app/(trace)/_panel/AboutButton.tsx): grows on hover or while open, then breathes
-   on the marks' period. Two layers, so the breath starts from the grown size, not a jump. */
+/* About button (app/(trace)/_panel/AboutButton.tsx): grows on hover or while open, while the
+   pen redraws its ring on a loop (.ring-loader below). */
 .about-grow {
   transition: transform 0.4s ease;
 }
@@ -56,24 +56,34 @@ body {
   transform: scale(var(--about-grow));
 }
 
-.about-button:hover .about-breathe,
-.about-button[aria-expanded="true"] .about-breathe {
-  animation: about-breathe var(--about-period) ease-in-out infinite;
+/* Drawn ring loop (components/DrawnRingLoop.tsx) — hovered or open marks and the About
+   button: the pen draws the ring, it holds, then fades; the fade's end starts the next
+   pass. Durations come from the component. */
+.ring-loader {
+  stroke-dasharray: 1;
+  animation:
+    ring-loader-draw var(--ring-draw) ease-in-out both,
+    ring-loader-fade var(--ring-fade) ease-in var(--ring-fade-delay) forwards;
 }
 
-@keyframes about-breathe {
-  0%,
-  100% {
-    transform: scale(1);
+@keyframes ring-loader-draw {
+  from {
+    stroke-dashoffset: 1;
   }
-  50% {
-    transform: scale(var(--about-peak));
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ring-loader-fade {
+  to {
+    opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .time-of-day-backdrop,
-  .about-breathe {
+  .ring-loader {
     animation: none !important;
   }
 }

@@ -5,7 +5,7 @@ A small info button at the bottom left of the trace page opens a short explanati
 ## Look (locked in the prototype)
 - **Button**: a small hand-drawn ring, drawn with the same pen as the crossing rings
   (`lib/domain/mark-shape.ts`), around an italic Literata *i*. At rest it is still and grey; on
-  hover or while open it darkens and breathes on the marks' period.
+  hover or while open it darkens and the pen redraws it on a loop, as on a hovered mark.
 - **Overlay**: a white sheet sliding in from the left, mirroring the intersection panel on the right
   (hairline border, 24px padding, `✕` glyph). A two-column grid (text at its measure, then
   the ✕, level with the meta line) sets its width; nothing is a fraction of the page. Full-screen on mobile.
@@ -20,7 +20,7 @@ Prototype: https://claude.ai/artifact/HyD6wSYMovBmXKDM3jEZ6W (direction 1).
 | ring radius / stroke | 15px / 1px |
 | *i* size | 17px |
 | hover growth | 1.12 |
-| breath depth / period | 0.12 / 7.4s |
+| loop growth | 0.12 (timing shared with the marks) |
 | ring pen seed | 7 (fixed shape) |
 | open/close | 320ms |
 | copy size / measure | 15px / 46ch |

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  breathingPhase,
   groupKey,
   groupRadius,
   type MarkGroup,
@@ -11,7 +10,6 @@ import {
 } from "@/lib/domain/trace-marks";
 import type { TraceIntersection } from "@/lib/server/data/intersections";
 import IntersectionDot from "./IntersectionDot";
-import type { MarkBreathing } from "./mark-breathing";
 import { useRingShapes } from "./ring-shapes";
 
 // The interactive marks layer. One element per *group*, not per intersection:
@@ -23,7 +21,6 @@ export default function TraceDots({
   metrics,
   params,
   activeId,
-  track,
   onActivate,
   onHoverGroup,
 }: {
@@ -31,7 +28,6 @@ export default function TraceDots({
   metrics: MarkMetrics;
   params: TraceMarkParams;
   activeId: number | null;
-  track: MarkBreathing["track"];
   onActivate: (group: MarkGroup<TraceIntersection>) => void;
   onHoverGroup: (key: number | null) => void;
 }) {
@@ -66,10 +62,10 @@ export default function TraceDots({
             shape={ringShape(key)}
             strokeWidth={stroke}
             hitRadius={Math.max(params.hitRadius, resting)}
-            // Only a hovered or open ring breathes — a resting mark stays put.
-            breathing={isActive || isHovered}
-            phase={breathingPhase(group.members[0].tracePointA.snapshot.fetchedAt, params)}
-            track={track}
+            // Only a hovered or open ring is redrawn on a loop — a resting mark stays put.
+            looping={isActive || isHovered}
+            loopScale={1 + params.loopGrowth}
+            loopTiming={params.loopTiming}
             onClick={(e) => {
               e.stopPropagation();
               onActivate(group);

@@ -8,14 +8,15 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import {
-  handDrawnRingPath,
-  UNIT_CIRCLE_PATH,
+  handDrawnRing,
+  UNIT_CIRCLE,
+  type RingShape,
   type RingShapeParams,
 } from "@/lib/domain/mark-shape";
 
-const cache = new WeakMap<RingShapeParams, Map<number, string>>();
+const cache = new WeakMap<RingShapeParams, Map<number, RingShape>>();
 
-function ringShapeFor(id: number, params: RingShapeParams): string {
+function ringShapeFor(id: number, params: RingShapeParams): RingShape {
   let shapes = cache.get(params);
   if (!shapes) {
     shapes = new Map();
@@ -23,7 +24,7 @@ function ringShapeFor(id: number, params: RingShapeParams): string {
   }
   let d = shapes.get(id);
   if (d === undefined) {
-    d = handDrawnRingPath(Math.random, params);
+    d = handDrawnRing(Math.random, params);
     shapes.set(id, d);
   }
   return d;
@@ -31,15 +32,15 @@ function ringShapeFor(id: number, params: RingShapeParams): string {
 
 const subscribeNever = () => () => {};
 
-/** Crossing id → unit-radius ring path; the unit circle until the page has hydrated. */
-export function useRingShapes(params: RingShapeParams): (id: number) => string {
+/** Crossing id → unit-radius ring shape; the unit circle until the page has hydrated. */
+export function useRingShapes(params: RingShapeParams): (id: number) => RingShape {
   const hydrated = useSyncExternalStore(
     subscribeNever,
     () => true,
     () => false
   );
   return useCallback(
-    (id: number) => (hydrated ? ringShapeFor(id, params) : UNIT_CIRCLE_PATH),
+    (id: number) => (hydrated ? ringShapeFor(id, params) : UNIT_CIRCLE),
     [hydrated, params]
   );
 }

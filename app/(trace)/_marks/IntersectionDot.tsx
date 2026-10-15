@@ -1,4 +1,6 @@
-import type { MarkBreathing } from "./mark-breathing";
+import DrawnRingLoop from "@/components/DrawnRingLoop";
+import type { RingShape } from "@/lib/domain/mark-shape";
+import type { RingLoopTiming } from "@/lib/domain/ring-loop";
 
 interface Props {
   sx: number;
@@ -6,25 +8,24 @@ interface Props {
   /** resting ring radius in screen px, including any hover/active growth */
   radius: number;
   /** the hand-drawn ring at unit radius, scaled up to `radius` */
-  shape: string;
+  shape: RingShape;
   strokeWidth: number;
   hitRadius: number;
-  /** whether this ring is hovered or open — only these breathe */
-  breathing: boolean;
-  /** breathing offset, so marks don't pulse in unison */
-  phase: number;
-  /** registers the ring with the breathing loop while it breathes */
-  track: MarkBreathing["track"];
+  /** whether this ring is hovered or open — only these are redrawn on a loop */
+  looping: boolean;
+  /** the looping ring's size, as a multiple of `radius` */
+  loopScale: number;
+  loopTiming: RingLoopTiming;
   onClick: (e: React.MouseEvent) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
 }
 
 // One mark on the trace. The ring is a unit-radius path scaled to its radius, with a
-// non-scaling stroke so its weight stays in screen px. While hovered or open, that scale
-// is overwritten every frame by mark-breathing.ts, which the ring joins through its ref —
-// React owns the resting value, the controller owns the breath. A resting mark has no ref,
-// so the controller never touches it.
+// non-scaling stroke so its weight stays in screen px. While hovered or open, the pen
+// redraws that same ring, a little larger, over and over (components/DrawnRingLoop).
+// That ring divides its stroke by the scale instead: under a non-scaling stroke the
+// browser measures dashes in screen px and ignores pathLength, so the pen would not draw.
 export default function IntersectionDot({
   sx,
   sy,
@@ -32,13 +33,16 @@ export default function IntersectionDot({
   shape,
   strokeWidth,
   hitRadius,
-  breathing,
-  phase,
-  track,
+  looping,
+  loopScale,
+  loopTiming,
   onClick,
   onMouseEnter,
   onMouseLeave,
 }: Props) {
+  const loopRadius = radius * loopScale;
+  const pen = { strokeLinecap: "round", strokeLinejoin: "round", pointerEvents: "none" } as const;
+
   return (
     <g transform={`translate(${sx},${sy})`}>
       <circle
@@ -49,19 +53,25 @@ export default function IntersectionDot({
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       />
-      <path
-        d={shape}
-        transform={`scale(${radius})`}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        vectorEffect="non-scaling-stroke"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        pointerEvents="none"
-        // Re-attached each render, so the loop always holds the current radius.
-        ref={breathing ? (el) => (el ? track(el, radius, phase) : undefined) : undefined}
-      />
+      {looping ? (
+        <DrawnRingLoop
+          ring={shape}
+          timing={loopTiming}
+          transform={`scale(${loopRadius})`}
+          strokeWidth={strokeWidth / loopRadius}
+          {...pen}
+        />
+      ) : (
+        <path
+          d={shape.d}
+          transform={`scale(${radius})`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          vectorEffect="non-scaling-stroke"
+          {...pen}
+        />
+      )}
     </g>
   );
 }

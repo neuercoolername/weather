@@ -9,7 +9,8 @@ Replace it with a ring that looks drawn by hand.
 - Open strokes carry pen behaviour: a lead-in onto the circle, a flick off it, a slow wander so
   passes drift apart and together, and a sliding centre so passes are not concentric.
 - Everything else about the mark is unchanged: size, stroke weight, open-stroke thickening, hover and
-  open growth, breathing (the fixed shape scales; the wobble does not animate), uniform stroke.
+  open growth, uniform stroke. A hovered or open ring is redrawn on a loop, its own shape a little
+  larger (`components/DrawnRingLoop.tsx`); the wobble does not animate.
 - A group ring uses the shape of its key (lowest-id) member, so it keeps its shape while zooming until
   that member splits off.
 - Tuned in the prototype artifact https://claude.ai/artifact/Y7WLaEwnFym4Q5a4vH96vA; its defaults

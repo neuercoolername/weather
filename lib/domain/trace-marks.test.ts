@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   DEFAULT_TRACE_MARK_PARAMS,
   MAX_SCALE,
-  breathingPhase,
-  breathingRadius,
   groupKey,
   groupMarks,
   groupRadius,
@@ -276,48 +274,5 @@ describe("groupKey", () => {
 
   it("names the only member of a lone mark", () => {
     expect(groupKey({ members: [{ id: 7, x: 0, y: 0 }], cx: 0, cy: 0, spread: 0 }).id).toBe(7);
-  });
-});
-
-describe("breathingRadius", () => {
-  it("swings around the resting radius and stays positive", () => {
-    const params: TraceMarkParams = { ...P, pulseDepth: 0.5, pulseFloorPx: 0 };
-    const samples = [0, 1, 2, 3, 4, 5, 6, 7].map((s) =>
-      breathingRadius(10, s, 0, params)
-    );
-    expect(Math.max(...samples)).toBeGreaterThan(10);
-    expect(Math.min(...samples)).toBeLessThan(10);
-    expect(Math.min(...samples)).toBeGreaterThan(0);
-  });
-
-  it("keeps a small ring visibly moving via the px floor", () => {
-    const params: TraceMarkParams = { ...P, pulseDepth: 0.22, pulseFloorPx: 2 };
-    const quarter = params.pulsePeriodSec / 4;
-    const rest = breathingRadius(4.5, 0, 0, params);
-    const peak = breathingRadius(4.5, quarter, 0, params);
-    expect(peak - rest).toBeCloseTo(2, 1);
-  });
-
-  it("does not move at all when depth and floor are zero", () => {
-    const params: TraceMarkParams = { ...P, pulseDepth: 0, pulseFloorPx: 0 };
-    expect(breathingRadius(6, 0, 0, params)).toBeCloseTo(6);
-    expect(breathingRadius(6, 3, 0, params)).toBeCloseTo(6);
-  });
-});
-
-describe("breathingPhase", () => {
-  it("is stable for one crossing and differs across crossings", () => {
-    const a = new Date("2026-04-04T10:00:00Z");
-    const b = new Date("2026-04-04T10:00:03Z");
-    expect(breathingPhase(a, P)).toBeCloseTo(breathingPhase(new Date(a), P));
-    expect(breathingPhase(a, P)).not.toBeCloseTo(breathingPhase(b, P));
-  });
-
-  it("stays within one turn", () => {
-    for (const iso of ["1999-01-01T00:00:00Z", "2026-08-17T13:37:11Z", "2030-12-31T23:59:59Z"]) {
-      const phase = breathingPhase(new Date(iso), P);
-      expect(phase).toBeGreaterThanOrEqual(0);
-      expect(phase).toBeLessThan(Math.PI * 2);
-    }
   });
 });

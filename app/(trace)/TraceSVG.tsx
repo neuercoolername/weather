@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { zoomIdentity, ZoomTransform } from "d3-zoom";
 import { createTraceCamera, type TraceCamera } from "./_camera/trace-camera";
-import { createMarkBreathing } from "./_marks/mark-breathing";
 import { useTraceNavigation } from "./_camera/use-trace-navigation";
 import {
   DEFAULT_TRACE_MARK_PARAMS,
@@ -72,9 +71,6 @@ export default function TraceSVG({
     () => ({ ...DEFAULT_TRACE_MARK_PARAMS, ...paramOverrides }),
     [paramOverrides]
   );
-  // Rings register with it through their refs, so it has to exist before the first
-  // commit; it does nothing until started.
-  const breathing = useMemo(() => createMarkBreathing(params), [params]);
 
   // Camera (d3-zoom) — one external-system instance for the component's life.
   useEffect(() => {
@@ -90,9 +86,6 @@ export default function TraceSVG({
       cameraRef.current = null;
     };
   }, []);
-
-  // Breathing marks — a second external system, restarted only if the feel changes.
-  useEffect(() => breathing.start(), [breathing]);
 
   // Pan a crossing to the centre of the visible (non-panel) area. Called from the
   // handlers below rather than an effect: this happens because the user selected
@@ -236,7 +229,6 @@ export default function TraceSVG({
           metrics={metrics}
           params={params}
           activeId={activeId}
-          track={breathing.track}
           onActivate={handleActivate}
           onHoverGroup={handleHoverGroup}
         />
@@ -264,6 +256,7 @@ export default function TraceSVG({
         onToggle={handleToggleAbout}
         params={DEFAULT_ABOUT_PARAMS}
         ringShape={params.ringShape}
+        loopTiming={params.loopTiming}
       />
     </div>
   );
