@@ -41,18 +41,18 @@ if [[ "$DUMP" == *.gpg ]]; then
   DUMP="$PLAIN"
 fi
 
-if ! docker compose ps --status running --services | grep -qx db; then
+if ! docker compose ps --status running --services | grep -qx db-public; then
   echo "the local database is not running — start it with: npm run db:up" >&2
   exit 1
 fi
 
-PSQL=(docker compose exec -T db psql -U weather -d weather -v ON_ERROR_STOP=1)
+PSQL=(docker compose exec -T db-public psql -U weather -d weather -v ON_ERROR_STOP=1)
 
 echo "==> Dropping and recreating schema public"
 "${PSQL[@]}" -c 'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;' >/dev/null
 
 echo "==> Restoring $DUMP"
-docker compose exec -T db pg_restore \
+docker compose exec -T db-public pg_restore \
   --username weather \
   --dbname weather \
   --schema public \
